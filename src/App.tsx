@@ -1,5 +1,11 @@
+import MainRoute from "./routes/mainRoute";
+
 const App = () => {
-  return <div className="bg-black">App</div>;
+  return (
+    <div className="bg-black">
+      <MainRoute />
+    </div>
+  );
 };
 
 export default App;
