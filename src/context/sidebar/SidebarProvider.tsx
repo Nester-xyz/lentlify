@@ -1,51 +1,70 @@
-import { useState, useEffect, useMemo, type FC, type ReactNode } from "react";
+import { useEffect, useMemo, type FC, type ReactNode, useReducer } from "react";
 import { SidebarContext } from "./SidebarContext";
+
+type State = {
+  left: boolean;
+  right: boolean;
+};
+
+type Action =
+  | { type: "TOGGLE_LEFT" }
+  | { type: "TOGGLE_RIGHT" }
+  | { type: "CLOSE_LEFT" }
+  | { type: "CLOSE_RIGHT" }
+  | { type: "INIT"; payload: State };
+
+const initialState: State = {
+  left: false,
+  right: false,
+};
+
+const reducers = (state: State, action: Action) => {
+  switch (action.type) {
+    case "TOGGLE_LEFT":
+      return { ...state, left: !state.left };
+    case "TOGGLE_RIGHT":
+      return { ...state, right: !state.right };
+    case "CLOSE_LEFT":
+      return { ...state, left: !state.left };
+    case "CLOSE_RIGHT":
+      return { ...state, right: !state.right };
+    case "INIT":
+      return action.payload;
+    default:
+      return state;
+  }
+};
 
 type SidebarProviderProps = {
   children: ReactNode;
 };
 
 export const SidebarProvider: FC<SidebarProviderProps> = ({ children }) => {
-  const [sidebarLeftIsVisible, setSidebarLeftIsVisible] = useState(false);
-  const [sidebarRightIsVisible, setSidebarRightIsVisible] = useState(false);
+  const [state, dispatch] = useReducer(reducers, initialState);
 
+  // Initialize from localStorage
   useEffect(() => {
-    const left = localStorage.getItem("sidebarLeft");
-    const right = localStorage.getItem("sidebarRight");
-
-    if (left !== null) setSidebarLeftIsVisible(left === "true");
-    if (right !== null) setSidebarRightIsVisible(right === "true");
+    const left = localStorage.getItem("sidebarLeft") === "true";
+    const right = localStorage.getItem("sidebarRight") === "true";
+    dispatch({ type: "INIT", payload: { left, right } });
   }, []);
 
+  // Sync to localStorage when state changes
   useEffect(() => {
-    localStorage.setItem("sidebarLeft", String(sidebarLeftIsVisible));
-  }, [sidebarLeftIsVisible]);
-
-  useEffect(() => {
-    localStorage.setItem("sidebarRight", String(sidebarRightIsVisible));
-  }, [sidebarRightIsVisible]);
-
-  const toggleSidebarLeft = () => {
-    setSidebarLeftIsVisible((prev) => !prev);
-  };
-
-  const toggleSidebarRight = () => {
-    setSidebarRightIsVisible((prev) => !prev);
-  };
-
-  const closeSidebarLeft = () => setSidebarLeftIsVisible(false);
-  const closeSidebarRight = () => setSidebarRightIsVisible(false);
+    localStorage.setItem("sidebarLeft", String(state.left));
+    localStorage.setItem("sidebarRight", String(state.right));
+  }, [state]);
 
   const value = useMemo(
     () => ({
-      sidebarLeftIsVisible,
-      sidebarRightIsVisible,
-      toggleSidebarLeft,
-      toggleSidebarRight,
-      closeSidebarLeft,
-      closeSidebarRight,
+      sidebarLeftIsVisible: state.left,
+      sidebarRightIsVisible: state.right,
+      toggleSidebarLeft: () => dispatch({ type: "TOGGLE_LEFT" }),
+      toggleSidebarRight: () => dispatch({ type: "TOGGLE_RIGHT" }),
+      closeSidebarLeft: () => dispatch({ type: "CLOSE_LEFT" }),
+      closeSidebarRight: () => dispatch({ type: "CLOSE_RIGHT" }),
     }),
-    [sidebarLeftIsVisible, sidebarRightIsVisible]
+    [state]
   );
 
   return (

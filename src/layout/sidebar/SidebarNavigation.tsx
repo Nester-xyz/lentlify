@@ -1,11 +1,11 @@
-import { Link, useLocation, useNavigate } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { useSidebar } from "../../context/sidebar/SidebarContext";
 import { SidebarList } from "./SidebarList";
 
 const SidebarNavigation = () => {
   const { sidebarLeftIsVisible } = useSidebar();
   const { pathname } = useLocation();
-  const navigate = useNavigate();
+  // const navigate = useNavigate();
 
   const activeItem = SidebarList.findIndex(
     (item) => item.sidebarPath === pathname
@@ -15,38 +15,37 @@ const SidebarNavigation = () => {
     <nav className="flex-1 overflow-y-auto p-2">
       <ul className="space-y-2">
         {SidebarList.map((item, index) => {
-          const isLogoutItem = item.sidebarItem === "Logout";
-          const itemClass = `flex items-center p-3 ${
-            sidebarLeftIsVisible ? "justify-center" : "space-x-3"
-          } rounded-lg cursor-pointer ${
-            activeItem === index
-              ? "bg-blue-600 text-white"
-              : "dark:text-gray-300 dark:hover:bg-gray-700 text-gray-700 hover:bg-gray-200"
-          } transition-all duration-200`;
-
           return (
             <li key={index}>
-              {isLogoutItem ? (
-                <button
-                  type="button"
-                  onClick={() => navigate("/login")}
-                  className={itemClass}
-                >
-                  {item.sidebarIcon}
-                  {!sidebarLeftIsVisible && (
-                    <span className="font-medium">{item.sidebarItem}</span>
+              <Link to={item.sidebarPath}>
+                <div className={`flex items-center p-1`}>
+                  {sidebarLeftIsVisible ? (
+                    <span
+                      className={`
+                        ${
+                          activeItem === index
+                            ? "bg-gray-200 dark:bg-gray-700"
+                            : ""
+                        }
+                        font-medium flex justify-center items-center gap-3 text-xl`}
+                    >
+                      {item.sidebarIcon}
+                      {item.sidebarItem}
+                    </span>
+                  ) : (
+                    <span
+                      className={`
+                        ${
+                          activeItem === index
+                            ? "bg-gray-200 dark:bg-gray-700"
+                            : ""
+                        } font-medium flex justify-center items-center gap-3  mx-auto text-2xl `}
+                    >
+                      {item.sidebarIcon}
+                    </span>
                   )}
-                </button>
-              ) : (
-                <Link to={item.sidebarPath}>
-                  <div className={itemClass}>
-                    {item.sidebarIcon}
-                    {!sidebarLeftIsVisible && (
-                      <span className="font-medium">{item.sidebarItem}</span>
-                    )}
-                  </div>
-                </Link>
-              )}
+                </div>
+              </Link>
             </li>
           );
         })}
