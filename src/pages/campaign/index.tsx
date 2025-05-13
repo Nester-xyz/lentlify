@@ -5,6 +5,7 @@ import { fetchAccount } from "@lens-protocol/client/actions";
 import { client, storageClient } from "@/lib/lens";
 import CircularCard from "@/components/atoms/CircularCard";
 import CampaignHeader from "@/components/molecules/CampaignHeader";
+import Post from "@/components/molecules/Post";
 
 interface CampaignMetadata {
   name: string;
