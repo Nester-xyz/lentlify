@@ -8,7 +8,7 @@ type Props = {
 const CircularCard = ({ children, size = "md" }: Props) => {
   return (
     <div
-      className={`border border-gray-300 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 p-4 rounded-2xl overflow-hidden
+      className={`border max-w-2xl mx-auto border-gray-300 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 p-4 rounded-2xl overflow-hidden
         ${
           size === "sm"
             ? "rounded-md"
