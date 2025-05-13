@@ -10,17 +10,25 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@lens-chain/sdk": "^1.0.3",
+    "@lens-chain/storage-client": "^1.0.4",
+    "@lens-protocol/client": "^0.0.0-canary-20250430134539",
     "@radix-ui/react-slot": "^1.2.2",
     "@tailwindcss/vite": "^4.1.6",
+    "@tanstack/react-query": "^5.76.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
+    "connectkit": "^1.9.0",
+    "lens": "^0.0.2",
     "lucide-react": "^0.509.0",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
     "react-icons": "^5.5.0",
     "react-router-dom": "^7.6.0",
     "tailwind-merge": "^3.2.0",
-    "tailwindcss": "^4.1.6"
+    "tailwindcss": "^4.1.6",
+    "viem": "^2.29.2",
+    "wagmi": "^2.15.2"
   },
   "devDependencies": {
     "@eslint/js": "^9.25.0",
