@@ -26,7 +26,7 @@ interface Profile {
   createdAt: string;
 }
 
-const Campaign: React.FC = () => {
+const Campaign = () => {
   const profile = useOutletContext<Profile | null>();
   const { campaignId } = useParams<{ campaignId: string }>();
   const location = useLocation();

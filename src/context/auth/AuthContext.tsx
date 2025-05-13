@@ -11,12 +11,12 @@ const LOGOUT_FLAG = "lentlify_logged_out";
 
 type AuthContextType = {
   isAuthorized: boolean;
-  sessionClient: string | null;
-  login: (client: string) => void;
+  sessionClient: any | null;
+  login: (client: any) => void;
   logout: () => void;
   isLoading: boolean;
-  selectedAccount: string | null;
-  setSelectedAccount: (account: string | null) => void;
+  selectedAccount: any | null;
+  setSelectedAccount: (account: any | null) => void;
 };
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);

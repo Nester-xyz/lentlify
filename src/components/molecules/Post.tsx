@@ -94,12 +94,6 @@ const Post: React.FC = () => {
           </div>
         )}
       </div>
-
-      {/* 
-      <PostFooter likeCount={10} comments={[]} shares={[]} /> */}
-      {/* <div className="px-5 py-2 text-xs text-gray-400">
-        {formatDate(DUMMY_DATA.createdAt)}
-      </div> */}
     </div>
   );
 };
