@@ -13,7 +13,7 @@ const SidebarNavigation = () => {
 
   return (
     <nav className="flex-1 overflow-y-auto p-2">
-      <ul className="space-y-2">
+      <ul className="space-y-0.5">
         {SidebarList.map((item, index) => {
           return (
             <li key={index}>
@@ -21,13 +21,15 @@ const SidebarNavigation = () => {
                 <div className={`flex items-center p-1`}>
                   {sidebarLeftIsVisible ? (
                     <span
-                      className={`
-                        ${
-                          activeItem === index
-                            ? "bg-gray-200 dark:bg-gray-700"
-                            : ""
-                        }
-                        font-medium flex justify-center items-center gap-3 text-xl`}
+                      className={` 
+                        flex items-center p-3 ${
+                          sidebarLeftIsVisible ? "justify-center" : "space-x-3"
+                        } rounded-lg cursor-pointer ${
+                        activeItem === index
+                          ? "bg-gray-600 text-white"
+                          : "text-gray-400 hover:bg-gray-700"
+                      } transition-all duration-200
+                        `}
                     >
                       {item.sidebarIcon}
                       {item.sidebarItem}
@@ -35,11 +37,14 @@ const SidebarNavigation = () => {
                   ) : (
                     <span
                       className={`
-                        ${
-                          activeItem === index
-                            ? "bg-gray-200 dark:bg-gray-700"
-                            : ""
-                        } font-medium flex justify-center items-center gap-3  mx-auto text-2xl `}
+                        flex items-center p-3 ${
+                          sidebarLeftIsVisible ? "justify-center" : "space-x-3"
+                        } rounded-lg cursor-pointer ${
+                        activeItem === index
+                          ? "bg-gray-600 text-white"
+                          : "text-gray-400 hover:bg-gray-700"
+                      } transition-all duration-200
+                         `}
                     >
                       {item.sidebarIcon}
                     </span>

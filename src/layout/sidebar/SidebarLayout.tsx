@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React from "react";
 import LogoHeader from "./LogoHeader";
 import { useSidebar } from "../../context/sidebar/SidebarContext";
 import SidebarNavigtion from "./SidebarNavigation";
@@ -9,25 +9,14 @@ type SidebarLayoutProps = {
 };
 
 const SidebarLayout: React.FC<SidebarLayoutProps> = ({ children }) => {
-  const { sidebarLeftIsVisible, sidebarRightIsVisible, toggleSidebarRight } =
-    useSidebar();
-
-  useEffect(() => {
-    console.log(sidebarRightIsVisible);
-  }, [sidebarRightIsVisible]);
-
-  useEffect(() => {
-    if (sidebarRightIsVisible) {
-      toggleSidebarRight();
-    }
-  }, [toggleSidebarRight, sidebarRightIsVisible]);
+  const { sidebarLeftIsVisible, sidebarRightIsVisible } = useSidebar();
 
   return (
     <div className="flex h-screen w-screen overflow-hidden bg-amber-300 relative ">
       <aside
         className={`${
           sidebarLeftIsVisible ? "w-64" : "w-16"
-        } dark:bg-gray-800 dark:text-white bg-gray-100 text-gray-800 transition-all duration-300 ease-in-out flex flex-col relative`}
+        }  bg-gray-100 text-gray-800 transition-all duration-300 ease-in-out flex flex-col relative`}
       >
         <LogoHeader />
         <SidebarNavigtion />

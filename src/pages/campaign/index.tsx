@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { useOutletContext, useParams, useLocation } from "react-router-dom";
 import CreatePost from "@/components/molecules/createPost";
 import { fetchAccount } from "@lens-protocol/client/actions";
