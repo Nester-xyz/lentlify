@@ -1,17 +1,52 @@
 import { Suspense } from "react";
-import { Routes, Route } from "react-router-dom";
+import { Routes, Route, Navigate } from "react-router-dom";
 import { RouteList } from "./RouteList";
 import Loading from "../pages/loading";
+import Login from "../pages/login";
+import Register from "../pages/register";
+import NoPage from "../pages/errors/404";
+import SidebarLayout from "../layout/sidebar/SidebarLayout";
+import { useAuth } from "../context/auth/AuthContext";
 
 const MainRoute = () => {
+  const { isAuthorized, isLoading } = useAuth();
+
+  if (isLoading) {
+    return <Loading />;
+  }
+
   return (
     <Suspense fallback={<Loading />}>
       <Routes>
-        {/* Private Routes */}
-        {RouteList.map((item, index) => {
-          const Component = item.location;
-          return <Route path={item.path} element={<Component />} key={index} />;
-        })}
+        <Route
+          path="/login"
+          element={isAuthorized ? <Navigate to="/" replace /> : <Login />}
+        />
+        <Route
+          path="/register"
+          element={isAuthorized ? <Navigate to="/" replace /> : <Register />}
+        />
+
+        <Route element={<SidebarLayout />}>
+          {RouteList.map((item, index) => {
+            const Component = item.location;
+            return (
+              <Route
+                key={index}
+                path={item.path}
+                element={
+                  !isAuthorized ? (
+                    <Navigate to="/login" replace />
+                  ) : (
+                    <Component />
+                  )
+                }
+              />
+            );
+          })}
+        </Route>
+
+        <Route path="*" element={<NoPage />} />
       </Routes>
     </Suspense>
   );

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useOutletContext } from "react-router-dom";
-import { UseAuth as useAuth } from "@/context/auth/AuthContext";
+import { useAuth } from "@/context/auth/AuthContext";
 import { storageClient } from "@/lib/lens";
 import acl from "@/lib/acl";
 import { IoCloudUploadOutline } from "react-icons/io5";

@@ -1,8 +1,8 @@
-import { PublicClient, mainnet } from "@lens-protocol/client";
+import { PublicClient, testnet } from "@lens-protocol/client";
 import { StorageClient, immutable } from "@lens-chain/storage-client";
 
 export const client = PublicClient.create({
-  environment: mainnet,
+  environment: testnet,
 
   storage: window.localStorage,
 });
