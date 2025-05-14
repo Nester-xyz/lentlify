@@ -13,7 +13,7 @@ const SidebarLayout: React.FC<SidebarLayoutProps> = ({ children }) => {
   const { sidebarLeftIsVisible, sidebarRightIsVisible } = useSidebar();
 
   return (
-    <div className="flex h-screen w-screen overflow-hidden bg-amber-300 relative ">
+    <div className="flex h-screen w-screen overflow-hidden relative bg-white">
       <aside
         className={`${
           sidebarLeftIsVisible ? "w-64" : "w-16"
@@ -31,7 +31,7 @@ const SidebarLayout: React.FC<SidebarLayoutProps> = ({ children }) => {
       </main>
 
       {sidebarRightIsVisible && (
-        <aside className="w-64 bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-white transition-all duration-300 ease-in-out flex flex-col relative">
+        <aside className="w-[26rem]  dark:bg-gray-800 text-gray-800 dark:text-white transition-all duration-300 ease-in-out flex flex-col relative">
           {/* Right Sidebar Content */}
           <div className="p-4">
             <SidebarRight />

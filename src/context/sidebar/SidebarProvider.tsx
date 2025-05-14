@@ -8,8 +8,8 @@ type State = {
 
 type Action =
   | { type: "TOGGLE_LEFT" }
-  | { type: "TOGGLE_RIGHT" }
   | { type: "CLOSE_LEFT" }
+  | { type: "OPEN_RIGHT" }
   | { type: "CLOSE_RIGHT" }
   | { type: "INIT"; payload: State };
 
@@ -22,12 +22,12 @@ const reducers = (state: State, action: Action) => {
   switch (action.type) {
     case "TOGGLE_LEFT":
       return { ...state, left: !state.left };
-    case "TOGGLE_RIGHT":
-      return { ...state, right: !state.right };
+    case "OPEN_RIGHT":
+      return { ...state, right: true };
     case "CLOSE_LEFT":
       return { ...state, left: !state.left };
     case "CLOSE_RIGHT":
-      return { ...state, right: !state.right };
+      return { ...state, right: false };
     case "INIT":
       return action.payload;
     default:
@@ -60,7 +60,7 @@ export const SidebarProvider: FC<SidebarProviderProps> = ({ children }) => {
       sidebarLeftIsVisible: state.left,
       sidebarRightIsVisible: state.right,
       toggleSidebarLeft: () => dispatch({ type: "TOGGLE_LEFT" }),
-      toggleSidebarRight: () => dispatch({ type: "TOGGLE_RIGHT" }),
+      openSidebarRight: () => dispatch({ type: "OPEN_RIGHT" }),
       closeSidebarLeft: () => dispatch({ type: "CLOSE_LEFT" }),
       closeSidebarRight: () => dispatch({ type: "CLOSE_RIGHT" }),
     }),

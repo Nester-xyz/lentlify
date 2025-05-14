@@ -61,7 +61,7 @@ const SidebarFooter: React.FC = () => {
   };
 
   return (
-    <div className="p-4 px-2 border-t dark:border-gray-700 border-gray-300 relative">
+    <div className="p-2 border-t dark:border-gray-700 border-gray-300 relative">
       <div
         ref={footerRef}
         onClick={handleLoginModal}

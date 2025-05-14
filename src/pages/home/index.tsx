@@ -1,7 +1,15 @@
+import { useSidebar } from "@/context/sidebar/SidebarContext";
+import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 
 const Home = () => {
   const navigate = useNavigate();
+
+  const { openSidebarRight } = useSidebar();
+
+  useEffect(() => {
+    openSidebarRight();
+  }, [openSidebarRight]);
 
   return (
     <div className="max-w-lg mx-auto py-8 flex flex-col items-center space-y-6">
