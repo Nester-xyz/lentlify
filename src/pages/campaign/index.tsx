@@ -1,11 +1,12 @@
 import { useState, useEffect } from "react";
-import { useOutletContext, useParams, useLocation } from "react-router-dom";
-import CreatePost from "@/components/molecules/createPost";
+import { useParams, useLocation } from "react-router-dom";
+import CreatePost from "@/components/molecules/CreatePost";
 import { fetchAccount } from "@lens-protocol/client/actions";
 import { client, storageClient } from "@/lib/lens";
 import CircularCard from "@/components/atoms/CircularCard";
 import CampaignHeader from "@/components/molecules/CampaignHeader";
 import Post from "@/components/molecules/Post";
+import { UseAuth } from "@/context/auth/AuthContext";
 
 interface CampaignMetadata {
   name: string;
@@ -17,17 +18,7 @@ interface CampaignMetadata {
   createdAt?: string;
 }
 
-interface Profile {
-  name: string;
-  address: string;
-  image?: string;
-  bio: string;
-  coverPicture?: string;
-  createdAt: string;
-}
-
 const Campaign = () => {
-  const profile = useOutletContext<Profile | null>();
   const { campaignId } = useParams<{ campaignId: string }>();
   const location = useLocation();
   const navState = location.state as { metaUri: string } | undefined;
@@ -37,14 +28,14 @@ const Campaign = () => {
     if (stored) metaUri = JSON.parse(stored).metaUri;
   }
   // Debug: Log metaUri
-  console.log("metaUri:", metaUri);
+
+  const { profile } = UseAuth();
 
   const [metaData, setMetaData] = useState<CampaignMetadata | null>(null);
   useEffect(() => {
     if (!metaUri) return;
     const fetchMeta = async () => {
       // Debug: Fetching metadata
-      console.log("Fetching metadata from:", metaUri);
 
       try {
         // resolve lens:// URI or storage key to Grove gateway URL
