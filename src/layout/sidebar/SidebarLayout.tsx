@@ -3,6 +3,7 @@ import LogoHeader from "./LogoHeader";
 import { useSidebar } from "../../context/sidebar/SidebarContext";
 import SidebarNavigtion from "./SidebarNavigation";
 import SidebarRight from "./SidebarRight";
+import SidebarFooter from "./SidebarFooter";
 
 type SidebarLayoutProps = {
   children: React.ReactNode;
@@ -20,6 +21,7 @@ const SidebarLayout: React.FC<SidebarLayoutProps> = ({ children }) => {
       >
         <LogoHeader />
         <SidebarNavigtion />
+        <SidebarFooter />
       </aside>
 
       <main className="w-full">
