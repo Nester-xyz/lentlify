@@ -6,6 +6,7 @@ import {
   type ReactNode,
 } from "react";
 import { client } from "../../lib/lens";
+import type { TProfile } from "@/types/User";
 
 const LOGOUT_FLAG = "lentlify_logged_out";
 
@@ -17,6 +18,7 @@ type AuthContextType = {
   isLoading: boolean;
   selectedAccount: any | null;
   setSelectedAccount: (account: any | null) => void;
+  profile: TProfile;
 };
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -77,6 +79,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         isLoading,
         selectedAccount,
         setSelectedAccount,
+        profile: {
+          address: "0x1234567890abcdef1234567890abcdef12345678",
+          bio: "This is a sample bio",
+          name: "Sample User",
+          coverPicture: "https://example.com/cover.jpg",
+          createdAt: "2023-01-01T00:00:00Z",
+        },
       }}
     >
       {children}

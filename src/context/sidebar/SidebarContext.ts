@@ -4,7 +4,7 @@ export type SidebarContextType = {
   sidebarLeftIsVisible: boolean;
   sidebarRightIsVisible: boolean;
   toggleSidebarLeft: () => void;
-  toggleSidebarRight: () => void;
+  openSidebarRight: () => void;
   closeSidebarLeft: () => void;
   closeSidebarRight: () => void;
 };

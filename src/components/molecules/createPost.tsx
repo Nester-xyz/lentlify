@@ -2,17 +2,9 @@ import React, { useState, useEffect } from "react";
 import { postId } from "@lens-protocol/client";
 import { fetchPost } from "@lens-protocol/client/actions";
 import { client } from "@/lib/lens";
+import type { TProfile } from "@/types/User";
 
-interface Profile {
-  name: string;
-  image?: string;
-  address: string; //should bring profile address to pass for grove storage about the information on seller's address
-  bio: string;
-  coverPicture?: string;
-  createdAt: string;
-}
-
-const CreatePost: React.FC<{ profile: Profile }> = ({ profile }) => {
+const CreatePost: React.FC<{ profile: TProfile }> = ({ profile }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [step, setStep] = useState(1);
   // Step 1 fields
@@ -34,7 +26,7 @@ const CreatePost: React.FC<{ profile: Profile }> = ({ profile }) => {
       setLoadingPost(false);
       return;
     }
-    const match = link.match(/\/posts\/([^\/\?#]+)/);
+    const match = link.match(/\/posts\/([^\\/\\?#]+)/);
     if (!match) {
       setPostError("Invalid post URL");
       setPostPreview(null);

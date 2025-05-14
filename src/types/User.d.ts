@@ -1,8 +1,8 @@
-export type TUser = {
-  id: string;
-  username: string;
-  displayName: string;
-  avatarUrl?: string;
-  coverUrl?: string;
-  bio?: string;
+export type TProfile = {
+  name: string;
+  image?: string;
+  address: string;
+  bio: string;
+  coverPicture?: string;
+  createdAt: string;
 };
