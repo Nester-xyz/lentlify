@@ -7,6 +7,7 @@ import CircularCard from "@/components/atoms/CircularCard";
 import CampaignHeader from "@/components/molecules/CampaignHeader";
 import Post from "@/components/molecules/Post";
 import { UseAuth } from "@/context/auth/AuthContext";
+import { useSidebar } from "@/context/sidebar/SidebarContext";
 
 interface CampaignMetadata {
   name: string;
@@ -30,6 +31,13 @@ const Campaign = () => {
   // Debug: Log metaUri
 
   const { profile } = UseAuth();
+  const { sidebarRightIsVisible, closeSidebarRight } = useSidebar();
+
+  useEffect(() => {
+    if (sidebarRightIsVisible) {
+      closeSidebarRight();
+    }
+  }, [sidebarRightIsVisible, closeSidebarRight]);
 
   const [metaData, setMetaData] = useState<CampaignMetadata | null>(null);
   useEffect(() => {

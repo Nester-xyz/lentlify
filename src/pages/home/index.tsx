@@ -5,11 +5,13 @@ import { useNavigate } from "react-router-dom";
 const Home = () => {
   const navigate = useNavigate();
 
-  const { openSidebarRight } = useSidebar();
+  const { openSidebarRight, sidebarRightIsVisible } = useSidebar();
 
   useEffect(() => {
-    openSidebarRight();
-  }, [openSidebarRight]);
+    if (!sidebarRightIsVisible) {
+      openSidebarRight();
+    }
+  }, [sidebarRightIsVisible, openSidebarRight]);
 
   return (
     <div className="max-w-lg mx-auto py-8 flex flex-col items-center space-y-6">
