@@ -8,6 +8,12 @@ export const RouteList = [
     exact: true,
   },
   {
+    pathName: "Home",
+    path: "/create-ad",
+    location: lazy(async () => await import("../pages/create-add")),
+    exact: true,
+  },
+  {
     pathName: "CreateCampaign",
     path: "/create",
     location: lazy(async () => await import("../pages/create-campaign")),

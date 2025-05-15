@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { CgProfile } from "react-icons/cg";
 import { RiLogoutCircleRLine } from "react-icons/ri";
@@ -6,14 +6,45 @@ import { useSidebar } from "@/context/sidebar/SidebarContext";
 import { useModal } from "@/context/model/ModelContext";
 import AbsoluteModal from "../modal/AbsoluteModal";
 import { UseAuth } from "@/context/auth/AuthContext";
+import { fetchAccount } from "@lens-protocol/client/actions";
+import { client } from "../../lib/lens";
 
 const SidebarFooter: React.FC = () => {
   const { sidebarLeftIsVisible } = useSidebar();
   const navigate = useNavigate();
-  const footerRef = React.useRef<HTMLDivElement>(null);
+  const footerRef = useRef<HTMLDivElement>(null);
   const { closeModal, openModal } = useModal();
 
-  const { profile } = UseAuth();
+  const { selectedAccount, profile, setProfile, logout } = UseAuth();
+
+  useEffect(() => {
+    if (!selectedAccount?.address) return;
+    (async () => {
+      const result = await fetchAccount(client, {
+        address: selectedAccount.address,
+      });
+      if (result.isErr()) {
+        console.error("Failed to fetch account:", result.error);
+        return;
+      }
+      const account = result.value;
+      if (!account) return;
+      const name = account.username?.localName || "";
+      const image = account.metadata?.picture;
+      const p = {
+        address: selectedAccount.address,
+        name,
+        image,
+        bio: account.metadata?.bio || "",
+        coverPicture: account.metadata?.coverPicture,
+        createdAt: account.createdAt,
+      };
+      if (typeof setProfile === "function") {
+        setProfile(p);
+      }
+      localStorage.setItem("sidebarProfile", JSON.stringify(p));
+    })();
+  }, [selectedAccount, setProfile]);
 
   const handleLoginModal = () => {
     openModal(
@@ -38,6 +69,7 @@ const SidebarFooter: React.FC = () => {
             <button
               className="px-5 py-3 text-left hover:bg-gray-200 text-gray-800 text-base font-medium transition-colors flex items-center gap-2"
               onClick={() => {
+                closeModal();
                 navigate("/profile");
               }}
             >
@@ -47,7 +79,8 @@ const SidebarFooter: React.FC = () => {
             <button
               className="px-5 py-3 text-left hover:bg-gray-200 text-red-600 text-base font-medium border-t border-gray-100 transition-colors flex items-center gap-2"
               onClick={() => {
-                // logout();
+                logout();
+                closeModal();
                 navigate("/login");
               }}
             >

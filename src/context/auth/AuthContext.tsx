@@ -7,6 +7,7 @@ import {
 } from "react";
 import { client } from "../../lib/lens";
 import type { TProfile } from "@/types/User";
+import type { Dispatch, SetStateAction } from "react";
 
 const LOGOUT_FLAG = "lentlify_logged_out";
 
@@ -18,23 +19,26 @@ type AuthContextType = {
   isLoading: boolean;
   selectedAccount: any | null;
   setSelectedAccount: (account: any | null) => void;
-  profile: TProfile;
+  profile?: TProfile;
+  setProfile: Dispatch<SetStateAction<TProfile | undefined>>;
 };
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [isAuthorized, setAuthorized] = useState(false);
-  const [sessionClient, setSessionClient] = useState<string | null>(null);
+  const [sessionClient, setSessionClient] = useState<any | null>(null);
   const [isLoading, setLoading] = useState(true);
-  const [selectedAccount, setSelectedAccount] = useState<string | null>(null);
+  const [selectedAccount, setSelectedAccount] = useState<any | null>(null);
+  const [profile, setProfile] = useState<TProfile | undefined>(() => {
+    const stored = window.localStorage.getItem("sidebarProfile");
+    return stored ? JSON.parse(stored) : undefined;
+  });
 
-  const login = (client: string) => {
+  const login = (client: any) => {
     try {
       window.localStorage.removeItem(LOGOUT_FLAG);
-    } catch {
-      // localStorage not available or user is in private mode
-    }
+    } catch {}
     setSessionClient(client);
     setAuthorized(true);
   };
@@ -42,30 +46,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const logout = () => {
     setSessionClient(null);
     setAuthorized(false);
+    setSelectedAccount(null);
+    setProfile(undefined);
     try {
       window.localStorage.setItem(LOGOUT_FLAG, "true");
-    } catch {
-      // localStorage write failed
-    }
+      window.localStorage.removeItem("sidebarProfile");
+    } catch {}
   };
 
   useEffect(() => {
     (async () => {
-      try {
-        if (window.localStorage.getItem(LOGOUT_FLAG)) {
-          setLoading(false);
-          return;
-        }
-
-        const resumed = await client.resumeSession();
-        if (resumed.isOk()) {
-          login(resumed.value.toString());
-        }
-      } catch {
-        // Resume session failed or localStorage not accessible
-      } finally {
+      if (window.localStorage.getItem(LOGOUT_FLAG)) {
         setLoading(false);
+        return;
       }
+      const resumed = await client.resumeSession();
+      if (resumed.isOk()) {
+        login(resumed.value);
+      }
+      setLoading(false);
     })();
   }, []);
 
@@ -79,13 +78,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         isLoading,
         selectedAccount,
         setSelectedAccount,
-        profile: {
-          address: "0x1234567890abcdef1234567890abcdef12345678",
-          bio: "This is a sample bio",
-          name: "Sample User",
-          coverPicture: "https://example.com/cover.jpg",
-          createdAt: "2023-01-01T00:00:00Z",
-        },
+        profile,
+        setProfile,
       }}
     >
       {children}
@@ -96,7 +90,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 export function UseAuth(): AuthContextType {
   const context = useContext(AuthContext);
   if (!context) {
-    throw new Error("UseAuth must be used within AuthProvider");
+    throw new Error("useAuth must be used within AuthProvider");
   }
   return context;
 }

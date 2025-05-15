@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useOutletContext } from "react-router-dom";
-import { UseAuth } from "@/context/auth/AuthContext";
-import { storageClient } from "@/lib/lens";
-import acl from "@/lib/acl";
 import { IoCloudUploadOutline } from "react-icons/io5";
-import { Spinner } from "@/components/atoms/Spinner";
+import { storageClient } from "@/lib/lens";
+import { useLensAdCampaignMarketplace } from "@/hooks/useLensAdCampaignMarketplace";
+import acl from "@/lib/acl";
+
+
 interface Profile {
   name: string;
   address: string;
@@ -15,20 +16,35 @@ interface Profile {
   createdAt: string;
 }
 
-const CreateCampaign = () => {
+const CreateCampaignGroup: React.FC = () => {
   const profile = useOutletContext<Profile | null>();
-  const { selectedAccount } = UseAuth();
   const navigate = useNavigate();
+  
+  // Form state
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [coverPhoto, setCoverPhoto] = useState<File | null>(null);
   const [coverPhotoUrl, setCoverPhotoUrl] = useState<string | null>(null);
   const [profilePhoto, setProfilePhoto] = useState<File | null>(null);
   const [profilePhotoUrl, setProfilePhotoUrl] = useState<string | null>(null);
-  const [campaignIds, setCampaignIds] = useState("");
+  
+  // Status and error state
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [contentHash, setContentHash] = useState<string>("");
+  const [groveUri, setGroveUri] = useState<string>("");
+  const [shouldExecuteContract, setShouldExecuteContract] = useState(false);
 
+  // Contract interaction hook
+  const { 
+    createCampaignGroup,
+    isCreateGroupPending, 
+    isCreateGroupConfirming,
+    isCreateGroupConfirmed,
+    createGroupHash
+  } = useLensAdCampaignMarketplace();
+
+  // Image preview handlers
   useEffect(() => {
     if (coverPhoto) {
       const url = URL.createObjectURL(coverPhoto);
@@ -49,6 +65,61 @@ const CreateCampaign = () => {
     }
   }, [profilePhoto]);
 
+  // When transaction is confirmed, navigate to details page
+  useEffect(() => {
+    if (isCreateGroupConfirmed) {
+      navigate(`/campaign/${contentHash}`, { 
+        state: { 
+          metaUri: groveUri, 
+          payload: {
+            name,
+            description,
+            owner: profile?.address,
+            coverPhoto: coverPhotoUrl,
+            profilePhoto: profilePhotoUrl
+          }
+        } 
+      });
+    }
+  }, [isCreateGroupConfirmed, navigate, contentHash, groveUri, name, description, profile, coverPhotoUrl, profilePhotoUrl]);
+  
+  // Effect to execute contract call when URI is ready
+  useEffect(() => {
+    const executeContractCall = async () => {
+      if (shouldExecuteContract && groveUri) {
+        try {
+          console.log("Executing contract call with URI:", groveUri);
+          await createCampaignGroup(groveUri);
+          console.log("Campaign group creation initiated");
+          setShouldExecuteContract(false); // Reset flag after execution
+        } catch (err: any) {
+          console.error("Error during contract execution:", err);
+          setError(err.message || "Error creating campaign group");
+          setIsSubmitting(false);
+          setShouldExecuteContract(false); // Reset flag on error
+        }
+      }
+    };
+    
+    executeContractCall();
+  }, [shouldExecuteContract, groveUri, createCampaignGroup]);
+  
+  // Add debug logging for contract interaction states
+  useEffect(() => {
+    console.log("Contract interaction state:", {
+      isPending: isCreateGroupPending,
+      isConfirming: isCreateGroupConfirming,
+      isConfirmed: isCreateGroupConfirmed
+    });
+    
+    // If transaction fails, show error
+    if (!isCreateGroupConfirming && !isCreateGroupConfirmed && isCreateGroupPending === false) {
+      setError("Transaction failed. Please check console for details.");
+      setIsSubmitting(false);
+    }
+  }, [isCreateGroupPending, isCreateGroupConfirming, isCreateGroupConfirmed]);
+
+  // File input handlers
   const handleCoverPhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       setCoverPhoto(e.target.files[0]);
@@ -69,96 +140,121 @@ const CreateCampaign = () => {
     setProfilePhoto(null);
   };
 
+  // Two-step submission process:
+  // 1. Upload content to Grove storage
+  // 2. Create campaign group on-chain with the content URI
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
+    
     setIsSubmitting(true);
+    
     try {
+      // Step 1: Upload files and content to Grove storage
       let coverUri: string | null = null;
       if (coverPhoto) {
         const fileRes = await storageClient.uploadFile(coverPhoto, { acl });
         coverUri = fileRes.gatewayUrl;
       }
+      console.log("Cover URI:", coverUri);
+      
       let profileUri: string | null = null;
       if (profilePhoto) {
         const profRes = await storageClient.uploadFile(profilePhoto, { acl });
         profileUri = profRes.gatewayUrl;
       }
-      const ids = campaignIds.split(",").map((id) => id.trim());
+      console.log("Profile URI:", profileUri);
+      
       const payload = {
         name,
         description,
-        owner: profile?.address ?? selectedAccount?.address,
+        owner: profile?.address,
         coverPhoto: coverUri,
         profilePhoto: profileUri,
-        campaignIds: ids,
-        createdAt: new Date().toISOString(),
+        createdAt: new Date().toISOString()
       };
-      const metaRes = await storageClient.uploadAsJson(payload, {
-        acl: acl,
-      });
-      console.log(metaRes);
+      
+      const metaRes = await storageClient.uploadAsJson(payload, { acl });
+      console.log("Storage response:", metaRes);
+      
       const metaUri = metaRes.uri;
-      const id = metaUri.replace("lens://", "");
-      localStorage.setItem(
-        `campaign_${id}`,
-        JSON.stringify({ metaUri, payload })
-      );
-      navigate(`/campaign/${id}`, { state: { metaUri, payload } });
+      console.log("Meta URI:", metaUri);
+      const hash = metaUri.replace("lens://", "");
+      console.log("Meta hash:", hash);
+      
+      // Step 2: Prepare for campaign group creation on-chain
+      // Save the content hash and Grove URI for use in the contract call
+      setContentHash(hash);
+      setGroveUri(metaUri);
+      
+      // Set flag to trigger contract execution in the useEffect
+      setShouldExecuteContract(true);
+      console.log("Campaign group creation prepared with URI:", metaUri);
     } catch (err: any) {
-      setError(err.message);
-    } finally {
+      setError(err.message || "Error creating campaign group");
       setIsSubmitting(false);
     }
   };
 
+  // Determine the button state/text based on the transaction state
+  const getButtonText = () => {
+    if (isSubmitting && !isCreateGroupPending) return "Uploading to Grove...";
+    if (isCreateGroupPending) return "Preparing transaction...";
+    if (isCreateGroupConfirming) return "Confirming transaction...";
+    return "Create Campaign Group";
+  };
+
+  const isButtonDisabled = isSubmitting || isCreateGroupPending || isCreateGroupConfirming;
+
   return (
     <div className="max-w-xl mx-auto py-8">
-      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-4 mb-6 border border-gray-300 dark:border-gray-700">
-        <h1 className="text-2xl font-bold mb-6 dark:text-white">
-          Create Campaign
-        </h1>
+      <div className="bg-white rounded-xl shadow-sm p-4 mb-6 border border-gray-300">
+        <h1 className="text-2xl font-bold mb-6">Create Campaign Group</h1>
         <form onSubmit={handleSubmit} className="space-y-6">
           {/* Campaign Name */}
           <div className="space-y-1">
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-              Campaign Name
+            <label className="block text-sm font-medium text-gray-700">
+              Campaign Group Name
             </label>
-            <div className="flex items-center bg-gray-100 dark:bg-gray-700 rounded-lg p-2 px-3 border-2 border-transparent focus-within:border-teal-400 transition-colors duration-200">
+            <div className="flex items-center bg-gray-100 rounded-lg p-2 px-3 border-2 border-transparent focus-within:border-teal-400 transition-colors duration-200">
               <input
                 type="text"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                className="flex-1 bg-transparent border-none outline-none text-gray-700 dark:text-gray-200 text-sm placeholder-gray-400 dark:placeholder-gray-500"
-                placeholder="Enter campaign name"
+                className="flex-1 bg-transparent border-none outline-none text-gray-700 text-sm placeholder-gray-400"
+                placeholder="Enter campaign group name"
                 required
+                disabled={isButtonDisabled}
               />
             </div>
           </div>
+          
           {/* Description */}
           <div className="space-y-1">
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+            <label className="block text-sm font-medium text-gray-700">
               Description
             </label>
-            <div className="flex items-center bg-gray-100 dark:bg-gray-700 rounded-lg p-2 px-3 border-2 border-transparent focus-within:border-teal-400 transition-colors duration-200">
+            <div className="flex items-center bg-gray-100 rounded-lg p-2 px-3 border-2 border-transparent focus-within:border-teal-400 transition-colors duration-200">
               <textarea
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
-                className="flex-1 bg-transparent border-none outline-none text-gray-700 dark:text-gray-200 text-sm placeholder-gray-400 dark:placeholder-gray-500"
+                className="flex-1 bg-transparent border-none outline-none text-gray-700 text-sm placeholder-gray-400"
                 placeholder="Enter description"
                 rows={4}
                 required
+                disabled={isButtonDisabled}
               />
             </div>
           </div>
+          
           {/* Profile Photo */}
           <div className="space-y-1">
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+            <label className="block text-sm font-medium text-gray-700">
               Profile Photo
             </label>
             {profilePhotoUrl ? (
               <div className="relative w-24 h-24">
-                <div className="rounded-full overflow-hidden border border-gray-300 dark:border-gray-700 w-full h-full">
+                <div className="rounded-full overflow-hidden border border-gray-300 w-full h-full">
                   <img
                     src={profilePhotoUrl}
                     alt="Profile preview"
@@ -168,11 +264,12 @@ const CreateCampaign = () => {
                 <button
                   type="button"
                   onClick={removeProfilePhoto}
-                  className="absolute top-1 right-1 bg-white dark:bg-gray-800 rounded-full p-1 shadow hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer"
+                  className="absolute top-1 right-1 bg-white rounded-full p-1 shadow hover:bg-gray-100 cursor-pointer"
+                  disabled={isButtonDisabled}
                 >
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
-                    className="h-4 w-4 text-gray-600 dark:text-gray-400"
+                    className="h-4 w-4 text-gray-600"
                     fill="none"
                     viewBox="0 0 24 24"
                     stroke="currentColor"
@@ -190,9 +287,9 @@ const CreateCampaign = () => {
               <>
                 <label
                   htmlFor="profilePhotoUpload"
-                  className="relative flex items-center justify-center w-24 h-24 bg-gray-100 dark:bg-gray-700 rounded-full border-2 border-dashed border-gray-300 dark:border-gray-600 hover:border-teal-400 transition-colors duration-200 cursor-pointer"
+                  className={`relative flex items-center justify-center w-24 h-24 bg-gray-100 rounded-full border-2 border-dashed border-gray-300 hover:border-teal-400 transition-colors duration-200 ${isButtonDisabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
                 >
-                  <IoCloudUploadOutline className="h-6 w-6 text-gray-500 dark:text-gray-400" />
+                  <IoCloudUploadOutline className="h-6 w-6 text-gray-500" />
                 </label>
                 <input
                   id="profilePhotoUpload"
@@ -200,17 +297,19 @@ const CreateCampaign = () => {
                   accept="image/*"
                   onChange={handleProfilePhotoChange}
                   className="hidden"
+                  disabled={isButtonDisabled}
                 />
               </>
             )}
           </div>
+          
           {/* Cover Photo */}
           <div className="space-y-1">
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+            <label className="block text-sm font-medium text-gray-700">
               Cover Photo
             </label>
             {coverPhotoUrl ? (
-              <div className="relative border border-gray-300 dark:border-gray-700 rounded-lg w-full h-36 overflow-hidden">
+              <div className="relative border border-gray-300 rounded-lg w-full h-36 overflow-hidden">
                 <img
                   src={coverPhotoUrl}
                   alt="Cover preview"
@@ -219,11 +318,12 @@ const CreateCampaign = () => {
                 <button
                   type="button"
                   onClick={removeCoverPhoto}
-                  className="absolute top-2 right-2 bg-white dark:bg-gray-800 cursor-pointer rounded-full p-1 shadow hover:bg-gray-100 dark:hover:bg-gray-700"
+                  className="absolute top-2 right-2 bg-white cursor-pointer rounded-full p-1 shadow hover:bg-gray-100"
+                  disabled={isButtonDisabled}
                 >
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
-                    className="h-4 w-4 text-gray-600 dark:text-gray-400"
+                    className="h-4 w-4 text-gray-600"
                     fill="none"
                     viewBox="0 0 24 24"
                     stroke="currentColor"
@@ -241,10 +341,10 @@ const CreateCampaign = () => {
               <>
                 <label
                   htmlFor="coverPhotoUpload"
-                  className="relative flex flex-col items-center justify-center w-full h-36 bg-gray-100 dark:bg-gray-700 rounded-lg border-2 border-dashed border-gray-300 dark:border-gray-600 hover:border-teal-400 transition-colors duration-200 cursor-pointer"
+                  className={`relative flex flex-col items-center justify-center w-full h-36 bg-gray-100 rounded-lg border-2 border-dashed border-gray-300 hover:border-teal-400 transition-colors duration-200 ${isButtonDisabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
                 >
-                  <IoCloudUploadOutline className="h-8 w-8 text-gray-500 dark:text-gray-400" />
-                  <span className="text-sm text-gray-500 dark:text-gray-400 mt-2">
+                  <IoCloudUploadOutline className="h-8 w-8 text-gray-500" />
+                  <span className="text-sm text-gray-500 mt-2">
                     Click to upload
                   </span>
                 </label>
@@ -254,39 +354,42 @@ const CreateCampaign = () => {
                   accept="image/*"
                   onChange={handleCoverPhotoChange}
                   className="hidden"
+                  disabled={isButtonDisabled}
                 />
               </>
             )}
           </div>
-          {/* Campaign IDs */}
-          <div className="space-y-1">
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-              Campaign IDs
-            </label>
-            <div className="flex items-center bg-gray-100 dark:bg-gray-700 rounded-lg p-2 px-3 border-2 border-transparent focus-within:border-teal-400 transition-colors duration-200">
-              <input
-                type="text"
-                value={campaignIds}
-                onChange={(e) => setCampaignIds(e.target.value)}
-                className="flex-1 bg-transparent border-none outline-none text-gray-700 dark:text-gray-200 text-sm placeholder-gray-400 dark:placeholder-gray-500"
-                placeholder="e.g., 1001,1002,1003"
-                required
-              />
+          
+          {error && (
+            <div className="text-red-500 text-sm bg-red-50 p-3 rounded-lg border border-red-200">
+              {error}
             </div>
-          </div>
-          {error && <div className="text-red-500">{error}</div>}
+          )}
+          
+          {createGroupHash && !isCreateGroupConfirmed && (
+            <div className="text-blue-500 text-sm bg-blue-50 p-3 rounded-lg border border-blue-200">
+              Transaction submitted! Waiting for confirmation...
+              <a 
+                href={`https://testnet.lensscan.io/tx/${createGroupHash}`} 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="text-blue-600 hover:underline block mt-1"
+              >
+                View on explorer
+              </a>
+            </div>
+          )}
+          
           <button
             type="submit"
-            disabled={isSubmitting}
-            className="w-full bg-blue-600 text-white py-2 rounded-full hover:bg-blue-500 transition flex items-center justify-center focus:ring-2 focus:ring-blue-300 dark:focus:ring-blue-700"
+            disabled={isButtonDisabled}
+            className={`w-full py-2 rounded-full transition ${
+              isButtonDisabled 
+                ? 'bg-blue-300 cursor-not-allowed' 
+                : 'bg-blue-600 hover:bg-blue-500 text-white'
+            }`}
           >
-            {isSubmitting ? (
-              <>
-                <Spinner className="mr-2 animate-spin" size="sm" /> Creating...
-              </>
-            ) : (
-              "Create Campaign"
-            )}
+            {getButtonText()}
           </button>
         </form>
       </div>
@@ -294,4 +397,4 @@ const CreateCampaign = () => {
   );
 };
 
-export default CreateCampaign;
+export default CreateCampaignGroup;
