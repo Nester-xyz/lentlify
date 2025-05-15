@@ -6,10 +6,10 @@ import Login from "../pages/login";
 import Register from "../pages/register";
 import NoPage from "../pages/errors/404";
 import SidebarLayout from "../layout/sidebar/SidebarLayout";
-import { useAuth } from "../context/auth/AuthContext";
+import { UseAuth } from "../context/auth/AuthContext";
 
 const MainRoute = () => {
-  const { isAuthorized, isLoading } = useAuth();
+  const { isAuthorized, isLoading } = UseAuth();
 
   if (isLoading) {
     return <Loading />;

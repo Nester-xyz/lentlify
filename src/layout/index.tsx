@@ -1,5 +1,4 @@
 import React from "react";
-import SidebarLayout from "./sidebar/SidebarLayout";
 import { SidebarProvider } from "../context/sidebar/SidebarProvider";
 import { ModalProvider } from "@/context/model/ModelProvider";
 
@@ -11,9 +10,7 @@ const GeneralLayout = ({ children }: LayoutProps) => {
   return (
     <div>
       <ModalProvider>
-        <SidebarProvider>
-          <SidebarLayout>{children}</SidebarLayout>
-        </SidebarProvider>
+        <SidebarProvider>{children}</SidebarProvider>
       </ModalProvider>
     </div>
   );

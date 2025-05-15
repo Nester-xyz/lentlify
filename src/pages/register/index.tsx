@@ -3,7 +3,7 @@ import { useAccount, useSignMessage } from "wagmi";
 import { Spinner } from "@/components/atoms/Spinner";
 import { Button } from "@/components/atoms/Button";
 import { useNavigate } from "react-router-dom";
-import { useAuth } from "@/context/auth/AuthContext";
+import { UseAuth } from "@/context/auth/AuthContext";
 import { client } from "@/lib/lens";
 import { createAccountWithUsername } from "@lens-protocol/client/actions";
 import { uri } from "@lens-protocol/client";
@@ -24,7 +24,7 @@ const Register: React.FC = () => {
   const [bio, setBio] = useState("");
 
   const navigate = useNavigate();
-  const { login, setSelectedAccount } = useAuth();
+  const { login, setSelectedAccount } = UseAuth();
   const [isLoading, setIsLoading] = useState(false);
 
   const { setSessionClient, setLoggedInUsername, setActiveLensAddress } =

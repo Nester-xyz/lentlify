@@ -1,6 +1,5 @@
 import { useState, useEffect } from "react";
 import { useParams, useLocation } from "react-router-dom";
-import CreatePost from "@/components/molecules/CreatePost";
 import { fetchAccount } from "@lens-protocol/client/actions";
 import { client, storageClient } from "@/lib/lens";
 import CircularCard from "@/components/atoms/CircularCard";
@@ -8,6 +7,7 @@ import CampaignHeader from "@/components/molecules/CampaignHeader";
 import Post from "@/components/molecules/Post";
 import { UseAuth } from "@/context/auth/AuthContext";
 import { useSidebar } from "@/context/sidebar/SidebarContext";
+import CreatePost from "@/components/molecules/createPost";
 
 interface CampaignMetadata {
   name: string;

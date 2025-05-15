@@ -1,11 +1,11 @@
 import { useSidebar } from "@/context/sidebar/SidebarContext";
 import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { useAuth } from "@/context/auth/AuthContext";
+import { UseAuth } from "@/context/auth/AuthContext";
 
 const Home = () => {
   const navigate = useNavigate();
-  const { selectedAccount } = useAuth();
+  const { selectedAccount } = UseAuth();
 
   console.log(selectedAccount);
 

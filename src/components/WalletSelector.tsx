@@ -8,7 +8,7 @@ import { fetchAccountsAvailable } from "@lens-protocol/client/actions";
 import { evmAddress } from "@lens-protocol/client";
 import { client } from "../lib/lens";
 import { IconlyArrowRightCircle } from "./IconlyArrowRightCircle";
-import { useAuth } from "../context/auth/AuthContext";
+import { UseAuth } from "../context/auth/AuthContext";
 import { ConnectKitButton } from "connectkit";
 
 const WALLET_META = {
@@ -23,7 +23,7 @@ export default function WalletSelector() {
     sessionClient,
     selectedAccount,
     setSelectedAccount,
-  } = useAuth();
+  } = UseAuth();
   const { connector: active, address } = useAccount();
   const { connectAsync, connectors, isPending } = useConnect();
   const { disconnect } = useDisconnect();

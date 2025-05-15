@@ -16,9 +16,7 @@ const AbsoluteModal: React.FC<ModalProps> = ({ open, onClose, children }) => {
     };
 
     const handleScroll = () => {
-      console.log("scrolling ");
       if (open) {
-        console.log("Scroll detected, closing modal");
         onClose();
       }
     };
