@@ -292,6 +292,49 @@ export const useLensAdCampaignMarketplace = () => {
       return [];
     }
   };
+  
+  // Function to get detailed campaign information
+  const getCampaignInfo = async (campaignId: number) => {
+    try {
+      console.log(`Fetching detailed info for campaign ${campaignId}`);
+      const data = await publicClient!.readContract({
+        ...lensAdCampaignConfig,
+        functionName: 'getCampaignInfo',
+        args: [campaignId],
+      }) as any[];
+      console.log(`Raw campaign info data for ID ${campaignId}:`, data);
+      
+      // Format the returned data into a structured object
+      const formattedData = {
+        postId: data[0] as string,
+        sellerAddress: data[1] as `0x${string}`,
+        depositsToPayInfluencers: data[2] as bigint,
+        startTime: data[3] as bigint,
+        endTime: data[4] as bigint,
+        minFollowersRequired: data[5] as bigint,
+        status: data[6] as number,
+        groveContentURI: data[7] as string,
+        contentHash: data[8] as string,
+        version: data[9] as bigint,
+        availableLikeSlots: data[10] as bigint,
+        availableCommentSlots: data[11] as bigint,
+        availableQuoteSlots: data[12] as bigint,
+        claimedLikeSlots: data[13] as bigint,
+        claimedCommentSlots: data[14] as bigint,
+        claimedQuoteSlots: data[15] as bigint,
+        likeReward: data[16] as bigint,
+        commentReward: data[17] as bigint,
+        quoteReward: data[18] as bigint,
+        campaignId: data[19] as bigint
+      };
+      
+      console.log(`Formatted campaign info for ID ${campaignId}:`, formattedData);
+      return formattedData;
+    } catch (error) {
+      console.error(`Error reading detailed campaign info for ID ${campaignId}:`, error);
+      return null;
+    }
+  };
 
   // Add Lens Account transaction functionality
   const { data: lensTransactionHash, isPending: isLensTransactionPending, writeContract: writeLensTransaction } = useWriteContract();
@@ -932,6 +975,7 @@ export const useLensAdCampaignMarketplace = () => {
     
     // Read functions
     getCampaign,
+    getCampaignInfo,
     getSellerCampaigns,
     getCampaignInfluencerActions,
     hasPerformedAction,

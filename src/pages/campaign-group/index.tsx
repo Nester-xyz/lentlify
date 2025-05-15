@@ -1,29 +1,100 @@
 import React, { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
-import { useLensAdCampaignMarketplace } from "@/hooks/useLensAdCampaignMarketplace";
+import { useLensAdCampaignMarketplace, ActionType } from "@/hooks/useLensAdCampaignMarketplace";
 import { useNavigate } from "react-router-dom";
-import { FiExternalLink } from "react-icons/fi";
+import { FiExternalLink, FiClock, FiUser, FiHash, FiMessageSquare, FiRepeat } from "react-icons/fi";
 import { storageClient } from "@/lib/lens";
+
+// Helper function to get action type name
+const getActionTypeName = (actionType: number): string => {
+  switch (actionType) {
+    case ActionType.NONE:
+      return "None";
+    case ActionType.MIRROR:
+      return "Mirror";
+    case ActionType.COMMENT:
+      return "Comment";
+    case ActionType.QUOTE:
+      return "Quote";
+    default:
+      return "Unknown";
+  }
+};
+
+// Helper function to format time ago
+const formatTimeAgo = (dateString: string): string => {
+  const date = new Date(dateString);
+  const now = new Date();
+  const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
+  
+  if (diffInSeconds < 60) {
+    return `${diffInSeconds} seconds ago`;
+  }
+  
+  const diffInMinutes = Math.floor(diffInSeconds / 60);
+  if (diffInMinutes < 60) {
+    return `${diffInMinutes} ${diffInMinutes === 1 ? 'minute' : 'minutes'} ago`;
+  }
+  
+  const diffInHours = Math.floor(diffInMinutes / 60);
+  if (diffInHours < 24) {
+    return `${diffInHours} ${diffInHours === 1 ? 'hour' : 'hours'} ago`;
+  }
+  
+  const diffInDays = Math.floor(diffInHours / 24);
+  if (diffInDays < 30) {
+    return `${diffInDays} ${diffInDays === 1 ? 'day' : 'days'} ago`;
+  }
+  
+  const diffInMonths = Math.floor(diffInDays / 30);
+  if (diffInMonths < 12) {
+    return `${diffInMonths} ${diffInMonths === 1 ? 'month' : 'months'} ago`;
+  }
+  
+  const diffInYears = Math.floor(diffInMonths / 12);
+  return `${diffInYears} ${diffInYears === 1 ? 'year' : 'years'} ago`;
+};
 
 // Define the campaign group data structure
 interface CampaignGroupData {
   groupURI: string;
   owner: string;
-  postCampaignIds: number[];
-  metadata?: {
-    name: string;
-    description: string;
-    coverPhoto?: string;
-    profilePhoto?: string;
-  };
+  postCampaignIds: bigint[] | number[];
+  metadata?: any;
+}
+
+// Define the campaign data structure
+interface CampaignData {
+  campaignId: number;
+  postId: string;
+  sellerAddress: string;
+  depositsToPayInfluencers: bigint;
+  startTime: bigint;
+  endTime: bigint;
+  minFollowersRequired: bigint;
+  status: number;
+  groveContentURI: string;
+  contentHash: string;
+  version: bigint;
+  availableLikeSlots: bigint;
+  availableCommentSlots: bigint;
+  availableQuoteSlots: bigint;
+  claimedLikeSlots: bigint;
+  claimedCommentSlots: bigint;
+  claimedQuoteSlots: bigint;
+  likeReward: bigint;
+  commentReward: bigint;
+  quoteReward: bigint;
+  metadata?: any;
 }
 
 const CampaignGroupDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { getCampaignGroup, CONTRACT_ADDRESS } = useLensAdCampaignMarketplace();
+  const { getCampaignGroup, getGroupPosts, getCampaignInfo, CONTRACT_ADDRESS } = useLensAdCampaignMarketplace();
   
   const [campaignGroup, setCampaignGroup] = useState<CampaignGroupData | null>(null);
+  const [campaigns, setCampaigns] = useState<CampaignData[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -54,8 +125,13 @@ const CampaignGroupDetail: React.FC = () => {
         setIsLoading(true);
         console.log(`Fetching campaign group ${id} from contract ${CONTRACT_ADDRESS}`);
         
-        // Fetch campaign group data from the contract
-        const groupData = await getCampaignGroup(Number(id)) as any;
+        // Fetch the campaign group data
+        const groupData = await getCampaignGroup(Number(id)) as unknown as {
+          groupURI: string;
+          owner: string;
+          postCampaignIds: bigint[];
+        };
+        
         console.log('Campaign group data:', groupData);
         
         if (!groupData || !groupData.groupURI) {
@@ -63,6 +139,79 @@ const CampaignGroupDetail: React.FC = () => {
           setIsLoading(false);
           return;
         }
+        
+        // Get campaign IDs for this group
+        const campaignIds = await getGroupPosts(Number(id)) as unknown as bigint[];
+        console.log(`Group ${Number(id)} has ${campaignIds?.length || 0} campaigns`);
+        const campaignsList: CampaignData[] = [];
+        
+        // Fetch data for each campaign
+        if (campaignIds && campaignIds.length > 0) {
+          for (const campaignId of campaignIds) {
+            try {
+              // Use getCampaignInfo to get detailed campaign information
+              const campaignInfo = await getCampaignInfo(Number(campaignId));
+              
+              if (campaignInfo) {
+                let campaignMetadata: any = {};
+                
+                // Fetch campaign metadata if available
+                if (campaignInfo.groveContentURI) {
+                  try {
+                    let fetchUrl = campaignInfo.groveContentURI;
+                    
+                    // Handle lens:// protocol URLs
+                    if (fetchUrl.startsWith('lens://')) {
+                      const contentHash = fetchUrl.replace('lens://', '');
+                      console.log(`Resolving lens URI for campaign ${Number(campaignId)}:`, contentHash);
+                      
+                      try {
+                        // Use storageClient to resolve the lens:// URI to an HTTPS URL
+                        fetchUrl = storageClient.resolve(fetchUrl);
+                        console.log('Resolved campaign lens URI to:', fetchUrl);
+                      } catch (resolveErr) {
+                        console.error(`Error resolving campaign lens URI:`, resolveErr);
+                        // Use placeholder metadata
+                        campaignMetadata = {
+                          name: `Campaign #${Number(campaignId)}`,
+                          description: `Campaign with content hash: ${contentHash.substring(0, 10)}...`,
+                        };
+                        // Skip fetch attempt
+                        throw new Error('Failed to resolve lens URI');
+                      }
+                    }
+                    
+                    // Fetch metadata
+                    const metadataResponse = await fetch(fetchUrl);
+                    if (metadataResponse.ok) {
+                      campaignMetadata = await metadataResponse.json();
+                      console.log(`Fetched metadata for campaign ${Number(campaignId)}:`, campaignMetadata);
+                    }
+                  } catch (err) {
+                    console.error(`Error fetching metadata for campaign ${campaignId}:`, err);
+                    // Use placeholder metadata on error
+                    campaignMetadata = {
+                      name: `Campaign #${Number(campaignId)}`,
+                      description: 'Metadata could not be loaded'
+                    };
+                  }
+                }
+                
+                // Add campaign to the list with all the detailed information
+                campaignsList.push({
+                  ...campaignInfo,
+                  campaignId: Number(campaignId),
+                  metadata: campaignMetadata
+                });
+              }
+            } catch (err) {
+              console.error(`Error fetching campaign ${campaignId}:`, err);
+            }
+          }
+        }
+        
+        // Update campaigns state
+        setCampaigns(campaignsList);
 
         // Fetch metadata if available
         let metadata = {};
@@ -225,7 +374,7 @@ const CampaignGroupDetail: React.FC = () => {
               {/* Contract Info */}
               <div className="text-sm text-gray-400">
                 {/* <p>Contract Address: {CONTRACT_ADDRESS}</p> */}
-                <p>Total Campaigns: {campaignGroup.postCampaignIds?.length || 0}</p>
+                <p>Total Campaigns: {campaigns.length || 0}</p>
               </div>
             </div>
           </div>
@@ -234,15 +383,138 @@ const CampaignGroupDetail: React.FC = () => {
           <div className="border-t border-gray-700 mt-6 p-6">
             <h3 className="text-lg font-medium text-white mb-4">Technical Details</h3>
             <div className="bg-gray-900 p-4 rounded-md overflow-x-auto text-white">
-              {/* <pre className="text-gray-300 text-sm">
-                {JSON.stringify({
-                  id,
-                  groupURI: campaignGroup.groupURI,
-                  owner: campaignGroup.owner,
-                  postCampaignIds: campaignGroup.postCampaignIds || []
-                }, null, 2)}
-              </pre> */}
-              Posts here
+              {campaigns.length > 0 ? (
+                <div className="space-y-4">
+                  <h4 className="text-md font-medium text-white mb-2">Campaigns in this group ({campaigns.length})</h4>
+                  {campaigns.map((campaign) => (
+                    <div key={campaign.campaignId} className="border border-gray-700 rounded-md p-4 hover:bg-gray-800 transition-colors">
+                      {/* Campaign Header */}
+                      <div className="flex justify-between items-start mb-2">
+                        <h5 className="text-lg font-medium text-white">
+                          {campaign.metadata?.title || campaign.metadata?.name || `Campaign #${campaign.campaignId}`}
+                        </h5>
+                        {campaign.metadata?.createdAt && (
+                          <div className="flex items-center text-xs text-gray-400">
+                            <FiClock className="mr-1" />
+                            <span>{formatTimeAgo(campaign.metadata.createdAt)}</span>
+                          </div>
+                        )}
+                      </div>
+                      
+                      {/* Campaign Description */}
+                      <p className="text-sm text-gray-300 mt-1 mb-3">
+                        {campaign.metadata?.description || 'No description available'}
+                      </p>
+                      
+                      {/* Campaign Link */}
+                      {campaign.metadata?.link && (
+                        <div className="mb-3">
+                          <a 
+                            href={campaign.metadata.link} 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            className="text-blue-400 hover:underline flex items-center text-sm"
+                          >
+                            View Post on Lens
+                            <FiExternalLink className="ml-1" />
+                          </a>
+                        </div>
+                      )}
+                      
+                      {/* Campaign Details */}
+                      <div className="grid grid-cols-2 gap-2 mb-3">
+                        {/* Action Type */}
+                        <div className="flex items-center text-xs text-gray-400">
+                          {campaign.metadata?.actionType === ActionType.MIRROR && <FiRepeat className="mr-1 text-pink-500" />}
+                          {campaign.metadata?.actionType === ActionType.COMMENT && <FiMessageSquare className="mr-1 text-blue-500" />}
+                          {campaign.metadata?.actionType === ActionType.QUOTE && <FiRepeat className="mr-1 text-green-500" />}
+                          <span>Action: {getActionTypeName(campaign.metadata?.actionType || 0)}</span>
+                        </div>
+                        
+                        {/* Min Followers */}
+                        <div className="flex items-center text-xs text-gray-400">
+                          <FiUser className="mr-1" />
+                          <span>Min Followers: {campaign.metadata?.minFollowers || campaign.minFollowersRequired?.toString() || '0'}</span>
+                        </div>
+                        
+                        {/* Max Slots */}
+                        <div className="flex items-center text-xs text-gray-400">
+                          <span>Max Slots: {campaign.metadata?.maxSlots || campaign.availableLikeSlots?.toString() || '0'}</span>
+                        </div>
+                        
+                        {/* Duration */}
+                        <div className="flex items-center text-xs text-gray-400">
+                          <span>Duration: {campaign.metadata?.duration || '0'} days</span>
+                        </div>
+                      </div>
+                      
+                      {/* Categories/Hashtags */}
+                      {campaign.metadata?.categories && campaign.metadata.categories.length > 0 && (
+                        <div className="flex flex-wrap gap-1 mt-2">
+                          {campaign.metadata.categories.map((category: string, index: number) => (
+                            <span key={index} className="bg-gray-700 text-gray-300 px-2 py-1 rounded-full text-xs flex items-center">
+                              <FiHash className="mr-1" />
+                              {category}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                      
+                      {/* Campaign Stats */}
+                      <div className="mt-3 pt-3 border-t border-gray-700">
+                        <div className="grid grid-cols-2 gap-2 mb-3">
+                          {/* Post ID */}
+                          <div className="flex items-center text-xs text-gray-400">
+                            <span>Post ID: {campaign.postId ? `${campaign.postId.substring(0, 8)}...` : 'N/A'}</span>
+                          </div>
+                          
+                          {/* Available Slots */}
+                          <div className="flex items-center text-xs text-gray-400">
+                            <span>Available Slots: {campaign.availableLikeSlots?.toString() || '0'}</span>
+                          </div>
+                          
+                          {/* Claimed Slots */}
+                          <div className="flex items-center text-xs text-gray-400">
+                            <span>Claimed Slots: {campaign.claimedLikeSlots?.toString() || '0'}</span>
+                          </div>
+                          
+                          {/* Reward */}
+                          <div className="flex items-center text-xs text-gray-400">
+                            <span>Reward: {campaign.likeReward ? (Number(campaign.likeReward) / 1e18).toFixed(4) : '0'} GRASS</span>
+                          </div>
+                          
+                          {/* Total Pool */}
+                          <div className="flex items-center text-xs text-gray-400">
+                            <span>Total Pool: {campaign.depositsToPayInfluencers ? (Number(campaign.depositsToPayInfluencers) / 1e18).toFixed(4) : '0'} GRASS</span>
+                          </div>
+                          
+                          {/* Status */}
+                          <div className="flex items-center text-xs text-gray-400">
+                            <span className={`px-2 py-0.5 rounded-full ${campaign.status === 1 ? 'bg-green-900 text-green-300' : 'bg-gray-700 text-gray-300'}`}>
+                              {campaign.status === 1 ? 'Active' : 'Inactive'}
+                            </span>
+                          </div>
+                        </div>
+                        
+                        {/* Mirror Button */}
+                        {campaign.status === 1 && campaign.availableLikeSlots && Number(campaign.availableLikeSlots) > 0 && (
+                          <button 
+                            className="w-full mt-2 bg-gradient-to-r from-green-600 to-green-800 hover:from-green-700 hover:to-green-900 text-white font-medium py-2 px-4 rounded-md flex items-center justify-center transition-colors"
+                            onClick={() => window.open(campaign.metadata?.link || '#', '_blank')}
+                          >
+                            <FiRepeat className="mr-2" />
+                            Mirror for {campaign.likeReward ? (Number(campaign.likeReward) / 1e18).toFixed(4) : '0'} GRASS
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-4">
+                  <p className="text-gray-400">No campaigns found in this group</p>
+                </div>
+              )}
             </div>
           </div>
         </div>
