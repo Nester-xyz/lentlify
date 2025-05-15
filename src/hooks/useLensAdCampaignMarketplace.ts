@@ -233,11 +233,29 @@ export const useLensAdCampaignMarketplace = () => {
   // Function to get campaign group
   const getCampaignGroup = async (groupId: number) => {
     try {
+      console.log(`Fetching campaign group ${groupId}`);
       const data = await publicClient!.readContract({
         ...lensAdCampaignConfig,
         functionName: 'campaignGroups',
         args: [groupId],
       });
+      
+      console.log('Raw campaign group data:', data);
+      
+      // The contract returns an array instead of an object with named properties
+      // We need to parse it into the expected structure
+      if (Array.isArray(data)) {
+        // Based on the contract structure, the array should contain:
+        // [0]: groupURI (string)
+        // [1]: owner (address)
+        // [2]: postCampaignIds (array of campaign IDs)
+        return {
+          groupURI: data[0],
+          owner: data[1],
+          postCampaignIds: data[2] || []
+        };
+      }
+      
       return data;
     } catch (error) {
       console.error('Error reading campaign group:', error);
@@ -250,13 +268,28 @@ export const useLensAdCampaignMarketplace = () => {
     try {
       const data = await publicClient!.readContract({
         ...lensAdCampaignConfig,
-        functionName: 'sellerCampaignGroups',
+        functionName: 'getSellerGroups',
         args: [sellerAddress],
       });
       return data;
     } catch (error) {
       console.error('Error reading seller campaign groups:', error);
-      return null;
+      return [];
+    }
+  };
+
+  // Function to get group posts (campaigns in a group)
+  const getGroupPosts = async (groupId: number) => {
+    try {
+      const data = await publicClient!.readContract({
+        ...lensAdCampaignConfig,
+        functionName: 'getGroupPosts',
+        args: [groupId],
+      });
+      return data;
+    } catch (error) {
+      console.error(`Error reading group posts for group ${groupId}:`, error);
+      return [];
     }
   };
 
@@ -400,6 +433,7 @@ export const useLensAdCampaignMarketplace = () => {
     groveContentURI: string,
     contentHash: string,
     useSmartWallet = false,
+    groupId: number = 0, // Add groupId parameter with default value of 0
     targetAudience?: {
       minAge: number;
       maxAge: number;
@@ -416,13 +450,13 @@ export const useLensAdCampaignMarketplace = () => {
         adDisplayStartTime, adDisplayEndTime, 
         rewardClaimableTime, rewardTimeEnd, 
         groveContentURI, contentHash, 
-        useSmartWallet, targetAudience,
+        useSmartWallet, groupId, targetAudience,
         value
       });
       
       // Create the transaction parameters - match the actual contract function parameters
       const args = [
-        0n, // groupId (0 for no group)
+        BigInt(groupId), // Use the provided groupId instead of hardcoding to 0
         postId,
         actionType,
         BigInt(availableSlots),
@@ -905,6 +939,7 @@ export const useLensAdCampaignMarketplace = () => {
     hasClaimedReward,
     getCampaignGroup,
     getSellerCampaignGroups,
+    getGroupPosts,
     platformFeePercentage,
     totalFeesCollected,
     campaignCounter,

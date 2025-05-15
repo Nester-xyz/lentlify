@@ -148,6 +148,7 @@ const createAd: React.FC = () => {
                 groveUri,
                 contentHash,
                 false, // Use smart wallet flag
+                parseInt(data.groupId), // Pass the group ID from the form
                 undefined, // No target audience
                 amountPool // Pass the amount as value for the payable function
               );
