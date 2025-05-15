@@ -2,10 +2,9 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useOutletContext } from "react-router-dom";
 import { IoCloudUploadOutline } from "react-icons/io5";
-import { storageClient } from "@/lens/client";
+import { storageClient } from "@/lib/lens";
 import { useLensAdCampaignMarketplace } from "@/hooks/useLensAdCampaignMarketplace";
-import acl from "@/lens/acl";
-
+import acl from "@/lib/acl";
 
 interface Profile {
   name: string;
@@ -19,7 +18,7 @@ interface Profile {
 const CreateCampaignGroup: React.FC = () => {
   const profile = useOutletContext<Profile | null>();
   const navigate = useNavigate();
-  
+
   // Form state
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
@@ -27,7 +26,7 @@ const CreateCampaignGroup: React.FC = () => {
   const [coverPhotoUrl, setCoverPhotoUrl] = useState<string | null>(null);
   const [profilePhoto, setProfilePhoto] = useState<File | null>(null);
   const [profilePhotoUrl, setProfilePhotoUrl] = useState<string | null>(null);
-  
+
   // Status and error state
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -36,12 +35,12 @@ const CreateCampaignGroup: React.FC = () => {
   const [shouldExecuteContract, setShouldExecuteContract] = useState(false);
 
   // Contract interaction hook
-  const { 
+  const {
     createCampaignGroup,
-    isCreateGroupPending, 
+    isCreateGroupPending,
     isCreateGroupConfirming,
     isCreateGroupConfirmed,
-    createGroupHash
+    createGroupHash,
   } = useLensAdCampaignMarketplace();
 
   // Image preview handlers
@@ -68,21 +67,31 @@ const CreateCampaignGroup: React.FC = () => {
   // When transaction is confirmed, navigate to details page
   useEffect(() => {
     if (isCreateGroupConfirmed) {
-      navigate(`/campaign/${contentHash}`, { 
-        state: { 
-          metaUri: groveUri, 
+      navigate(`/campaign/${contentHash}`, {
+        state: {
+          metaUri: groveUri,
           payload: {
             name,
             description,
             owner: profile?.address,
             coverPhoto: coverPhotoUrl,
-            profilePhoto: profilePhotoUrl
-          }
-        } 
+            profilePhoto: profilePhotoUrl,
+          },
+        },
       });
     }
-  }, [isCreateGroupConfirmed, navigate, contentHash, groveUri, name, description, profile, coverPhotoUrl, profilePhotoUrl]);
-  
+  }, [
+    isCreateGroupConfirmed,
+    navigate,
+    contentHash,
+    groveUri,
+    name,
+    description,
+    profile,
+    coverPhotoUrl,
+    profilePhotoUrl,
+  ]);
+
   // Effect to execute contract call when URI is ready
   useEffect(() => {
     const executeContractCall = async () => {
@@ -100,20 +109,24 @@ const CreateCampaignGroup: React.FC = () => {
         }
       }
     };
-    
+
     executeContractCall();
   }, [shouldExecuteContract, groveUri, createCampaignGroup]);
-  
+
   // Add debug logging for contract interaction states
   useEffect(() => {
     console.log("Contract interaction state:", {
       isPending: isCreateGroupPending,
       isConfirming: isCreateGroupConfirming,
-      isConfirmed: isCreateGroupConfirmed
+      isConfirmed: isCreateGroupConfirmed,
     });
-    
+
     // If transaction fails, show error
-    if (!isCreateGroupConfirming && !isCreateGroupConfirmed && isCreateGroupPending === false) {
+    if (
+      !isCreateGroupConfirming &&
+      !isCreateGroupConfirmed &&
+      isCreateGroupPending === false
+    ) {
       setError("Transaction failed. Please check console for details.");
       setIsSubmitting(false);
     }
@@ -146,9 +159,9 @@ const CreateCampaignGroup: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
-    
+
     setIsSubmitting(true);
-    
+
     try {
       // Step 1: Upload files and content to Grove storage
       let coverUri: string | null = null;
@@ -157,36 +170,36 @@ const CreateCampaignGroup: React.FC = () => {
         coverUri = fileRes.gatewayUrl;
       }
       console.log("Cover URI:", coverUri);
-      
+
       let profileUri: string | null = null;
       if (profilePhoto) {
         const profRes = await storageClient.uploadFile(profilePhoto, { acl });
         profileUri = profRes.gatewayUrl;
       }
       console.log("Profile URI:", profileUri);
-      
+
       const payload = {
         name,
         description,
         owner: profile?.address,
         coverPhoto: coverUri,
         profilePhoto: profileUri,
-        createdAt: new Date().toISOString()
+        createdAt: new Date().toISOString(),
       };
-      
+
       const metaRes = await storageClient.uploadAsJson(payload, { acl });
       console.log("Storage response:", metaRes);
-      
+
       const metaUri = metaRes.uri;
       console.log("Meta URI:", metaUri);
       const hash = metaUri.replace("lens://", "");
       console.log("Meta hash:", hash);
-      
+
       // Step 2: Prepare for campaign group creation on-chain
       // Save the content hash and Grove URI for use in the contract call
       setContentHash(hash);
       setGroveUri(metaUri);
-      
+
       // Set flag to trigger contract execution in the useEffect
       setShouldExecuteContract(true);
       console.log("Campaign group creation prepared with URI:", metaUri);
@@ -204,7 +217,8 @@ const CreateCampaignGroup: React.FC = () => {
     return "Create Campaign Group";
   };
 
-  const isButtonDisabled = isSubmitting || isCreateGroupPending || isCreateGroupConfirming;
+  const isButtonDisabled =
+    isSubmitting || isCreateGroupPending || isCreateGroupConfirming;
 
   return (
     <div className="max-w-xl mx-auto py-8">
@@ -228,7 +242,7 @@ const CreateCampaignGroup: React.FC = () => {
               />
             </div>
           </div>
-          
+
           {/* Description */}
           <div className="space-y-1">
             <label className="block text-sm font-medium text-gray-700">
@@ -246,7 +260,7 @@ const CreateCampaignGroup: React.FC = () => {
               />
             </div>
           </div>
-          
+
           {/* Profile Photo */}
           <div className="space-y-1">
             <label className="block text-sm font-medium text-gray-700">
@@ -287,7 +301,11 @@ const CreateCampaignGroup: React.FC = () => {
               <>
                 <label
                   htmlFor="profilePhotoUpload"
-                  className={`relative flex items-center justify-center w-24 h-24 bg-gray-100 rounded-full border-2 border-dashed border-gray-300 hover:border-teal-400 transition-colors duration-200 ${isButtonDisabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+                  className={`relative flex items-center justify-center w-24 h-24 bg-gray-100 rounded-full border-2 border-dashed border-gray-300 hover:border-teal-400 transition-colors duration-200 ${
+                    isButtonDisabled
+                      ? "opacity-50 cursor-not-allowed"
+                      : "cursor-pointer"
+                  }`}
                 >
                   <IoCloudUploadOutline className="h-6 w-6 text-gray-500" />
                 </label>
@@ -302,7 +320,7 @@ const CreateCampaignGroup: React.FC = () => {
               </>
             )}
           </div>
-          
+
           {/* Cover Photo */}
           <div className="space-y-1">
             <label className="block text-sm font-medium text-gray-700">
@@ -341,7 +359,11 @@ const CreateCampaignGroup: React.FC = () => {
               <>
                 <label
                   htmlFor="coverPhotoUpload"
-                  className={`relative flex flex-col items-center justify-center w-full h-36 bg-gray-100 rounded-lg border-2 border-dashed border-gray-300 hover:border-teal-400 transition-colors duration-200 ${isButtonDisabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+                  className={`relative flex flex-col items-center justify-center w-full h-36 bg-gray-100 rounded-lg border-2 border-dashed border-gray-300 hover:border-teal-400 transition-colors duration-200 ${
+                    isButtonDisabled
+                      ? "opacity-50 cursor-not-allowed"
+                      : "cursor-pointer"
+                  }`}
                 >
                   <IoCloudUploadOutline className="h-8 w-8 text-gray-500" />
                   <span className="text-sm text-gray-500 mt-2">
@@ -359,19 +381,19 @@ const CreateCampaignGroup: React.FC = () => {
               </>
             )}
           </div>
-          
+
           {error && (
             <div className="text-red-500 text-sm bg-red-50 p-3 rounded-lg border border-red-200">
               {error}
             </div>
           )}
-          
+
           {createGroupHash && !isCreateGroupConfirmed && (
             <div className="text-blue-500 text-sm bg-blue-50 p-3 rounded-lg border border-blue-200">
               Transaction submitted! Waiting for confirmation...
-              <a 
-                href={`https://testnet.lensscan.io/tx/${createGroupHash}`} 
-                target="_blank" 
+              <a
+                href={`https://testnet.lensscan.io/tx/${createGroupHash}`}
+                target="_blank"
                 rel="noopener noreferrer"
                 className="text-blue-600 hover:underline block mt-1"
               >
@@ -379,14 +401,14 @@ const CreateCampaignGroup: React.FC = () => {
               </a>
             </div>
           )}
-          
+
           <button
             type="submit"
             disabled={isButtonDisabled}
             className={`w-full py-2 rounded-full transition ${
-              isButtonDisabled 
-                ? 'bg-blue-300 cursor-not-allowed' 
-                : 'bg-blue-600 hover:bg-blue-500 text-white'
+              isButtonDisabled
+                ? "bg-blue-300 cursor-not-allowed"
+                : "bg-blue-600 hover:bg-blue-500 text-white"
             }`}
           >
             {getButtonText()}
