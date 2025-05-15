@@ -68,6 +68,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     })();
   }, []);
 
+  useEffect(() => {
+    try {
+      if (profile) {
+        window.localStorage.setItem("sidebarProfile", JSON.stringify(profile));
+      } else {
+        window.localStorage.removeItem("sidebarProfile");
+      }
+    } catch {}
+  }, [profile]);
+
   return (
     <AuthContext.Provider
       value={{
