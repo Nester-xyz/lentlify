@@ -24,7 +24,7 @@ type AuthContextType = {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [isAuthorized, setAuthorized] = useState(true);
+  const [isAuthorized, setAuthorized] = useState(false);
   const [sessionClient, setSessionClient] = useState<string | null>(null);
   const [isLoading, setLoading] = useState(true);
   const [selectedAccount, setSelectedAccount] = useState<string | null>(null);
