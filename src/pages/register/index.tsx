@@ -24,7 +24,7 @@ const Register: React.FC = () => {
   const [bio, setBio] = useState("");
 
   const navigate = useNavigate();
-  const { login, setSelectedAccount } = UseAuth();
+  const { login, setSelectedAccount, setProfile } = UseAuth();
   const [isLoading, setIsLoading] = useState(false);
 
   const { setSessionClient, setLoggedInUsername, setActiveLensAddress } =
@@ -74,6 +74,14 @@ const Register: React.FC = () => {
       if (result.isErr()) throw result.error;
       login(sessionCl.toString());
       setSelectedAccount(result.value);
+      setProfile({
+        name: userName,
+        image: profilePhotoUri,
+        address: address!,
+        bio: bio,
+        coverPicture: coverPhotoUri,
+        createdAt: new Date().toISOString(),
+      });
       navigate("/");
     } catch (err: any) {
       console.error(err);
