@@ -1,9 +1,13 @@
 import { useSidebar } from "@/context/sidebar/SidebarContext";
 import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { UseAuth } from "@/context/auth/AuthContext";
 
 const Home = () => {
   const navigate = useNavigate();
+  const { selectedAccount } = UseAuth();
+
+  console.log(selectedAccount);
 
   const { openSidebarRight, sidebarRightIsVisible } = useSidebar();
 

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useOutletContext } from "react-router-dom";
-import { UseAuth as useAuth } from "@/context/auth/AuthContext";
+import { UseAuth } from "@/context/auth/AuthContext";
 import { storageClient } from "@/lib/lens";
 import acl from "@/lib/acl";
 import { IoCloudUploadOutline } from "react-icons/io5";
@@ -17,7 +17,7 @@ interface Profile {
 
 const CreateCampaign = () => {
   const profile = useOutletContext<Profile | null>();
-  const { selectedAccount } = useAuth();
+  const { selectedAccount } = UseAuth();
   const navigate = useNavigate();
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
