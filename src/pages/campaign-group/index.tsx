@@ -443,6 +443,11 @@ const CampaignGroupDetail: React.FC = () => {
                           <span>Action: {getActionTypeName(campaign.metadata?.actionType || 0)}</span>
                         </div>
                         
+                        {/* Available Actions */}
+                        <div className="flex items-center text-xs text-gray-400">
+                          <span>Available Actions: {getActionTypeName(campaign.metadata?.actionType || 0)}</span>
+                        </div>
+                        
                         {/* Min Followers */}
                         <div className="flex items-center text-xs text-gray-400">
                           <FiUser className="mr-1" />

@@ -4,7 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { useLensAdCampaignMarketplace, ActionType } from "@/hooks/useLensAdCampaignMarketplace";
 import { useAccount } from "wagmi";
 import { FaPlus } from "react-icons/fa";
-import { FiExternalLink, FiMessageSquare, FiRepeat } from "react-icons/fi";
+import { FiExternalLink, FiRepeat } from "react-icons/fi";
 import { storageClient } from "@/lib/lens";
 import { formatDistanceToNow } from 'date-fns';
 
@@ -296,7 +296,7 @@ const Home = () => {
           <div
             key={campaign.id}
             className="bg-gray-800 rounded-lg overflow-hidden border border-gray-700 hover:border-blue-500 transition cursor-pointer"
-            // onClick={() => navigate(`/campaign-post/${campaign.id}`)}
+            onClick={() => navigate(`/campaign-post/${campaign.id}`)}
           >
             <div className="flex flex-col md:flex-row">
               {/* Campaign image */}
@@ -341,60 +341,24 @@ const Home = () => {
                     <span className="text-gray-400">Available Actions: </span>
                     <div className="flex flex-wrap gap-1 mt-1">
                       {Number(campaign.availableLikeSlots) > 0 && (
-                        <span className="px-2 py-1 text-xs rounded-full bg-blue-900 text-blue-200">
-                          {ActionType[ActionType.MIRROR]}
-                        </span>
-                      )}
-                      {Number(campaign.availableCommentSlots) > 0 && (
-                        <span className="px-2 py-1 text-xs rounded-full bg-green-900 text-green-200">
-                          {ActionType[ActionType.COMMENT]}
-                        </span>
-                      )}
-                      {Number(campaign.availableQuoteSlots) > 0 && (
-                        <span className="px-2 py-1 text-xs rounded-full bg-purple-900 text-purple-200">
-                          {ActionType[ActionType.QUOTE]}
-                        </span>
+                        <span>Available Actions: {ActionType[campaign.metadata?.actionType || 0]}</span>
                       )}
                     </div>
                   </div>
                   <div>
                     <span className="text-gray-400">Rewards: </span>
                     <div className="flex flex-col gap-1 mt-1">
-                      {Number(campaign.likeReward) > 0 && (
                         <div className="text-white text-xs">
-                          {ActionType[ActionType.MIRROR]}: {(Number(campaign.likeReward) / 1e18).toFixed(4)} GRASS
+                          {ActionType[campaign.metadata?.actionType || 0]}: {(Number(campaign.likeReward) / 1e18).toFixed(4)} GRASS
                         </div>
-                      )}
-                      {Number(campaign.commentReward) > 0 && (
-                        <div className="text-white text-xs">
-                          {ActionType[ActionType.COMMENT]}: {(Number(campaign.commentReward) / 1e18).toFixed(4)} GRASS
-                        </div>
-                      )}
-                      {Number(campaign.quoteReward) > 0 && (
-                        <div className="text-white text-xs">
-                          {ActionType[ActionType.QUOTE]}: {(Number(campaign.quoteReward) / 1e18).toFixed(4)} GRASS
-                        </div>
-                      )}
                     </div>
                   </div>
                   <div>
                     <span className="text-gray-400">Slots: </span>
                     <div className="flex flex-col gap-1 mt-1 text-xs">
-                      {Number(campaign.availableLikeSlots) > 0 && (
                         <div className="text-white">
-                          {ActionType[ActionType.MIRROR]}: {Number(campaign.claimedLikeSlots)}/{Number(campaign.availableLikeSlots)}
+                          {ActionType[campaign.metadata?.actionType || 0]}: {Number(campaign.claimedLikeSlots)}/{Number(campaign.availableLikeSlots)}
                         </div>
-                      )}
-                      {Number(campaign.availableCommentSlots) > 0 && (
-                        <div className="text-white">
-                          {ActionType[ActionType.COMMENT]}: {Number(campaign.claimedCommentSlots)}/{Number(campaign.availableCommentSlots)}
-                        </div>
-                      )}
-                      {Number(campaign.availableQuoteSlots) > 0 && (
-                        <div className="text-white">
-                          {ActionType[ActionType.QUOTE]}: {Number(campaign.claimedQuoteSlots)}/{Number(campaign.availableQuoteSlots)}
-                        </div>
-                      )}
                     </div>
                   </div>
                   <div>
@@ -411,7 +375,7 @@ const Home = () => {
                       onClick={() => window.open(campaign.metadata?.link || '#', '_blank')}
                     >
                       <FiRepeat className="mr-2" />
-                      {ActionType[campaign.metadata?.actionType || 0]} {campaign.likeReward ? (Number(campaign.likeReward) / 1e18).toFixed(4) : '0'} GRASS
+                      {ActionType[campaign.metadata?.actionType || 0]} for {campaign.likeReward ? (Number(campaign.likeReward) / 1e18).toFixed(4) : '0'} GRASS
                     </button>
                   )}
                 </div>
