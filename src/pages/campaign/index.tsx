@@ -1,398 +1,130 @@
-import React, { useState, useEffect } from "react";
+import React from "react";
 import { useNavigate } from "react-router-dom";
-import { storageClient } from "@/lib/lens";
-import { useLensAdCampaignMarketplace } from "@/hooks/useLensAdCampaignMarketplace";
-import { UseAuth } from "@/context/auth/AuthContext";
-import { useAccount } from "wagmi";
-import { useRef } from "react";
 import { FiExternalLink } from "react-icons/fi";
-
-// Define types for campaign group data
-interface CampaignGroupData {
-  id: number;
-  uri: string;
-  owner: string;
-  metadata?: {
-    name: string;
-    description: string;
-    coverPhoto?: string;
-    profilePhoto?: string;
-  };
-  campaigns: CampaignData[];
-}
-
-// Define the campaign data structure based on the contract
-interface CampaignData {
-  id: number;
-  postId: string;
-  sellerAddress: string;
-  amountPool: bigint;
-  rewardAmount: bigint;
-  actionType: number;
-  minFollowersRequired: number;
-  availableSlots: number;
-  claimedSlots: number;
-  adDisplayTimePeriod: {
-    startTime: bigint;
-    endTime: bigint;
-  };
-  groveContentURI: string;
-  contentHash: string;
-  status: number;
-  metadata?: {
-    title?: string;
-    description?: string;
-    image?: string;
-  };
-}
-
-// Define the campaign contract structure
-interface CampaignContract {
-  postId: string;
-  sellerAddress: string;
-  amountPool: bigint;
-  rewardAmount: bigint;
-  actionType: number;
-  minFollowersRequired: number;
-  availableSlots: number;
-  claimedSlots: number;
-  adDisplayTimePeriod: {
-    startTime: bigint;
-    endTime: bigint;
-  };
-  groveContentURI: string;
-  contentHash: string;
-  status: number;
-}
-
-// Define the campaign group structure from contract
-interface CampaignGroupContract {
-  groupURI: string;
-  owner: string;
-  postCampaignIds: bigint[];
-}
+import type { CampaignGroupData } from "@/types/campaign";
+import { useCampaignContext } from "@/context/campaign/CampaignContext";
+import CampaignCardShimmer from "@/components/loaders/CampaignCardShimmer";
 
 const CreateCampaignGroup: React.FC = () => {
-  const { profile } = UseAuth();
   const navigate = useNavigate();
-  const { address } = useAccount();
   const {
-    getSellerCampaignGroups,
-    getCampaignGroup,
-    getCampaign,
-    getGroupPosts,
-    getCampaignGroupCount,
-    CONTRACT_ADDRESS,
-  } = useLensAdCampaignMarketplace();
+    campaignGroups,
+    isLoading,
+    error,
+    fetchCampaignGroups,
+    lastFetchTime,
+  } = useCampaignContext();
 
-  // State for campaign groups and loading status
-  const [campaignGroups, setCampaignGroups] = useState<CampaignGroupData[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  // Refs to track loading and fetch timing
-  const initialLoadRef = useRef(true);
-  const lastFetchTimeRef = useRef<number>(0);
-
-  if (!profile) {
-    return <div>Loading profile...</div>;
+  if (isLoading && campaignGroups.length === 0) {
+    return (
+      <div className="w-full min-h-screen dark:bg-gray-900 dark:text-white">
+        <div className="sticky top-0 z-10 dark:bg-gray-900">
+          <div className="text-2xl p-4 font-bold text-gray-900 dark:text-white">
+            Explore Campaigns
+          </div>
+          <div className="border-t border-gray-200 dark:border-gray-700"></div>
+        </div>
+        <div
+          className="grid gap-6 p-6"
+          style={{
+            gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))",
+          }}
+        >
+          {Array.from({ length: 3 }).map((_, index) => (
+            <CampaignCardShimmer key={index} />
+          ))}
+        </div>
+      </div>
+    );
   }
 
-  // Fetch campaign groups for the seller (current user)
-  useEffect(() => {
-    // Skip if wallet address is not available
-    if (!address) {
-      console.log("Wallet address not available yet, skipping fetch");
-      return;
-    }
+  if (error) {
+    return (
+      <div className="w-full min-h-screen flex flex-col items-center justify-center bg-gray-50 dark:bg-gray-900">
+        <p className="text-lg text-red-500 dark:text-red-400">
+          Error loading campaigns: {error}
+        </p>
+        <button
+          onClick={() => fetchCampaignGroups()}
+          className="mt-4 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+        >
+          Try Again
+        </button>
+      </div>
+    );
+  }
 
-    console.log("Wallet connected:", address);
-    console.log("Contract address:", CONTRACT_ADDRESS);
-
-    const fetchCampaignGroups = async () => {
-      try {
-        // Show loading indicator only on first load
-        if (initialLoadRef.current) {
-          setIsLoading(true);
-        }
-
-        // Get current time to check if we should fetch
-        const now = Date.now();
-        const timeSinceLastFetch = now - lastFetchTimeRef.current;
-
-        // Only fetch if this is the first load or if enough time has passed
-        if (lastFetchTimeRef.current > 0 && timeSinceLastFetch < 30000) {
-          console.log(
-            `Too soon to fetch again (${Math.round(
-              timeSinceLastFetch / 1000
-            )}s since last fetch)`
-          );
-          return;
-        }
-
-        // Update last fetch time
-        lastFetchTimeRef.current = now;
-
-        // Get total campaign group count
-        const totalGroups = await getCampaignGroupCount();
-        console.log(`Total campaign groups: ${totalGroups}`);
-
-        if (!totalGroups) {
-          console.log("No campaign groups found");
-          setCampaignGroups([]);
-          setIsLoading(false);
-          return;
-        }
-
-        // Calculate the range of groups to fetch (all groups)
-        // The contract returns a number that's 1 higher than the actual highest group ID
-        const startId = Number(totalGroups); // Actual highest ID
-        const groupIds: number[] = [];
-
-        // Create an array of all group IDs in descending order (newest first)
-        for (let i = startId; i >= 1; i--) {
-          groupIds.push(i);
-        }
-
-        console.log(`Fetching ${groupIds.length} campaign groups`);
-
-        const groupsData: CampaignGroupData[] = [];
-
-        // Fetch data for each group
-        for (const groupId of groupIds) {
-          console.log(`Fetching group ${Number(groupId)}`);
-          const groupData = (await getCampaignGroup(
-            Number(groupId)
-          )) as unknown as CampaignGroupContract;
-
-          if (groupData) {
-            let metadata: any = {};
-
-            // Fetch metadata from Grove storage if URI exists
-            if (groupData.groupURI) {
-              try {
-                let fetchUrl = groupData.groupURI;
-
-                // If it's a lens:// URL, use storageClient to resolve it
-                if (fetchUrl.startsWith("lens://")) {
-                  const contentHash = fetchUrl.replace("lens://", "");
-                  console.log(
-                    `Resolving lens URI for group ${Number(groupId)}:`,
-                    contentHash
-                  );
-
-                  try {
-                    // Use storageClient to resolve the lens:// URI to an HTTPS URL
-                    fetchUrl = storageClient.resolve(fetchUrl);
-                    console.log(`Resolved lens URI to:`, fetchUrl);
-                  } catch (resolveErr) {
-                    console.error(
-                      `Error resolving lens URI for group ${Number(groupId)}:`,
-                      resolveErr
-                    );
-                    // Use placeholder metadata
-                    metadata = {
-                      name: `Campaign Group #${Number(groupId)}`,
-                      description: `Campaign group with content hash: ${contentHash.substring(
-                        0,
-                        10
-                      )}...`,
-                    };
-                    // Skip fetch attempt
-                    throw new Error("Failed to resolve lens URI");
-                  }
-                }
-
-                // Fetch metadata from the resolved URL
-                const metadataResponse = await fetch(fetchUrl);
-                if (metadataResponse.ok) {
-                  metadata = await metadataResponse.json();
-                  console.log(
-                    `Fetched metadata for group ${Number(groupId)}:`,
-                    metadata
-                  );
-                }
-              } catch (err) {
-                console.error(
-                  `Error fetching metadata for group ${groupId}:`,
-                  err
-                );
-              }
-            }
-
-            // Get campaign IDs for this group
-            const campaignIds = (await getGroupPosts(
-              Number(groupId)
-            )) as unknown as bigint[];
-            console.log(
-              `Group ${Number(groupId)} has ${
-                campaignIds?.length || 0
-              } campaigns`
-            );
-            const campaigns: CampaignData[] = [];
-
-            // Fetch data for each campaign
-            if (campaignIds && campaignIds.length > 0) {
-              for (const campaignId of campaignIds) {
-                const campaignData = (await getCampaign(
-                  Number(campaignId)
-                )) as unknown as CampaignContract;
-
-                if (campaignData) {
-                  let campaignMetadata: any = {};
-
-                  // Fetch campaign metadata
-                  if (campaignData.groveContentURI) {
-                    try {
-                      const campaignMetadataResponse = await fetch(
-                        campaignData.groveContentURI
-                      );
-                      if (campaignMetadataResponse.ok) {
-                        campaignMetadata =
-                          await campaignMetadataResponse.json();
-                      }
-                    } catch (err) {
-                      console.error(
-                        `Error fetching metadata for campaign ${campaignId}:`,
-                        err
-                      );
-                    }
-                  }
-
-                  campaigns.push({
-                    id: Number(campaignId),
-                    postId: campaignData.postId,
-                    sellerAddress: campaignData.sellerAddress,
-                    amountPool: campaignData.amountPool,
-                    rewardAmount: campaignData.rewardAmount,
-                    actionType: campaignData.actionType,
-                    minFollowersRequired: campaignData.minFollowersRequired,
-                    availableSlots: campaignData.availableSlots,
-                    claimedSlots: campaignData.claimedSlots,
-                    adDisplayTimePeriod: campaignData.adDisplayTimePeriod,
-                    groveContentURI: campaignData.groveContentURI,
-                    contentHash: campaignData.contentHash,
-                    status: campaignData.status,
-                    metadata: campaignMetadata,
-                  });
-                }
-              }
-            }
-
-            groupsData.push({
-              id: Number(groupId),
-              uri: groupData.groupURI,
-              owner: groupData.owner,
-              metadata,
-              campaigns,
-            });
-          }
-        }
-
-        setCampaignGroups(groupsData);
-        console.log(
-          `Fetch completed - found ${groupsData.length} groups with data`
-        );
-      } catch (err: any) {
-        console.error("Error fetching campaign groups:", err);
-        setError(err.message || "Failed to load campaign groups");
-      } finally {
-        setIsLoading(false);
-        initialLoadRef.current = false; // Mark initial load as complete
-      }
-    };
-
-    // Fetch campaign groups immediately
-    fetchCampaignGroups();
-
-    // Set up polling every 30 seconds
-    const pollingInterval = setInterval(() => {
-      console.log("30s interval triggered - fetching campaign updates");
-      fetchCampaignGroups();
-    }, 30000); // 30 seconds in milliseconds
-
-    // Clean up interval on component unmount
-    return () => {
-      console.log("Cleaning up polling interval");
-      clearInterval(pollingInterval);
-    };
-  }, [
-    address,
-    getCampaignGroup,
-    getCampaignGroupCount,
-    getGroupPosts,
-    getCampaign,
-    CONTRACT_ADDRESS,
-  ]);
+  if (!isLoading && campaignGroups.length === 0) {
+    return (
+      <div className="w-full min-h-screen flex flex-col items-center justify-center bg-gray-50 dark:bg-gray-900">
+        <div className="sticky top-0 z-10 bg-gray-50 dark:bg-gray-900 w-full">
+          <div className="text-2xl p-4 font-bold text-gray-900 dark:text-white">
+            Explore Campaigns
+          </div>
+          <div className="border-t border-gray-200 dark:border-gray-700"></div>
+        </div>
+        <div className="flex-grow flex items-center justify-center">
+          <p className="text-lg text-gray-700 dark:text-gray-300">
+            No campaign groups found.
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="max-w-xl mx-auto py-8 bg-gray-50 dark:bg-gray-900 dark:text-white">
-      {/* Campaign groups list */}
-      <div className="text-2xl font-bold mb-6 text-gray-900 dark:text-white">
-        ALL CAMPAIGNS
+    <div className="w-full min-h-screen  dark:bg-gray-900 dark:text-white">
+      <div className="sticky top-0 z-10  dark:bg-gray-900">
+        <div className="text-2xl p-4 font-bold text-gray-900 dark:text-white">
+          Explore Campaigns
+        </div>
+        <div className="border-t border-gray-200 dark:border-gray-700"></div>
       </div>
-      <div className="space-y-8">
-        {campaignGroups.map((group) => (
+
+      <div
+        className="grid gap-6 p-6"
+        style={{ gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))" }}
+      >
+        {campaignGroups.map((group: CampaignGroupData) => (
           <div
             key={group.id}
-            className="bg-white dark:bg-gray-800 rounded-lg overflow-hidden border border-gray-300 dark:border-gray-700 hover:border-blue-500 transition-colors duration-200 cursor-pointer"
+            className="cursor-pointer p-4 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden hover:shadow-xl transition-shadow"
             onClick={() => navigate(`/campaign-group/${group.id}`)}
           >
-            {/* Cover photo */}
-            <div className="h-48 bg-gray-100 dark:bg-gray-700 relative">
+            <div className="relative w-full pt-[66.6667%] overflow-hidden">
               {group.metadata?.coverPhoto ? (
                 <img
                   src={group.metadata.coverPhoto}
-                  alt="Cover"
-                  className="w-full h-full object-cover"
+                  alt={group.metadata.name || "Cover"}
+                  className="absolute inset-0 w-full h-full object-cover"
                 />
               ) : (
-                <div className="w-full h-full bg-gradient-to-r from-blue-900 to-purple-900"></div>
+                <div className="absolute inset-0 bg-gradient-to-r from-blue-900 to-purple-900"></div>
               )}
             </div>
-
-            {/* Profile section */}
-            <div className="px-6 pt-4 pb-6 relative">
-              {/* Profile photo */}
-              <div className="absolute -top-16 left-6 w-32 h-32 rounded-full border-4 border-gray-300 dark:border-gray-700 overflow-hidden bg-gray-100 dark:bg-gray-700">
-                {group.metadata?.profilePhoto ? (
-                  <img
-                    src={group.metadata.profilePhoto}
-                    alt="Profile"
-                    className="w-full h-full object-cover"
-                  />
-                ) : (
-                  <div className="w-full h-full bg-gradient-to-r from-blue-500 to-purple-500"></div>
-                )}
-              </div>
-
-              {/* Group info */}
-              <div className="ml-40">
-                <h2 className="text-xl font-bold text-gray-900 dark:text-white">
-                  {group.metadata?.name || `Campaign Group #${group.id}`}
-                </h2>
-                <p className="text-gray-700 dark:text-gray-400 text-sm mb-2 truncate">
-                  {group.owner}
-                </p>
-                <p className="text-gray-600 dark:text-gray-300 mb-4">
-                  {group.metadata?.description || "No description available"}
-                </p>
-
-                {/* Stats */}
-                <div className="flex items-center text-sm text-gray-700 dark:text-gray-400 mt-4">
-                  <div className="flex items-center mr-6">
-                    <span className="font-medium">
-                      {group.campaigns.length}
-                    </span>
-                    <span className="ml-1">campaigns</span>
-                  </div>
-                  <div className="flex items-center">
-                    <FiExternalLink className="mr-1 text-gray-700 dark:text-gray-300" />
-                    <span className="text-gray-700 dark:text-gray-300">
-                      View details
-                    </span>
-                  </div>
+            <div className="p-4">
+              <div className="flex items-center mb-3">
+                <div className="w-10 h-10 rounded-full overflow-hidden bg-gray-100 dark:bg-gray-700">
+                  {group.metadata?.profilePhoto ? (
+                    <img
+                      src={group.metadata.profilePhoto}
+                      alt={group.metadata.name || "Profile"}
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <div className="w-full h-full bg-gradient-to-r from-blue-500 to-purple-500"></div>
+                  )}
                 </div>
+                <h3 className="ml-3 text-sm font-semibold text-gray-900 dark:text-white truncate">
+                  {group.metadata?.name || `Campaign Group #${group.id}`}
+                </h3>
+              </div>
+              <p className="text-gray-500 dark:text-gray-400 text-xs mb-4 truncate">
+                {group.metadata?.description || "No description available"}
+              </p>
+              <div className="flex justify-between items-center text-gray-600 dark:text-gray-300 text-xs">
+                <span>{group.campaigns.length} campaigns</span>
+                <FiExternalLink />
               </div>
             </div>
           </div>

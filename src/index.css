@@ -4,3 +4,40 @@
 * {
   @apply dark:text-white;
 }
+
+@layer base {
+  :root {
+    /* your existing CSS variables */
+  }
+}
+
+@layer utilities {
+  .shimmer {
+    background: linear-gradient(
+      to right,
+      theme("colors.gray.200") 4%,
+      theme("colors.gray.300") 25%,
+      theme("colors.gray.200") 36%
+    );
+    background-size: 1000px 100%;
+    animation: shimmer 2s infinite linear;
+  }
+  .dark .shimmer {
+    background: linear-gradient(
+      to right,
+      theme("colors.gray.700") 4%,
+      theme("colors.gray.600") 25%,
+      theme("colors.gray.700") 36%
+    );
+    background-size: 1000px 100%;
+  }
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -1000px 0;
+  }
+  100% {
+    background-position: 1000px 0;
+  }
+}

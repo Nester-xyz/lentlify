@@ -9,7 +9,8 @@ import { useEffect } from "react";
 // SidebarLayout uses nested routes via <Outlet>
 
 const SidebarLayout = () => {
-  const { sidebarLeftIsVisible, sidebarRightIsVisible, openSidebarRight } = useSidebar();
+  const { sidebarLeftIsVisible, sidebarRightIsVisible, openSidebarRight } =
+    useSidebar();
 
   useEffect(() => {
     if (!sidebarRightIsVisible) openSidebarRight();
@@ -33,7 +34,7 @@ const SidebarLayout = () => {
       </div>
 
       <main className="flex-1">
-        <div className="flex-1 overflow-auto bg-white  dark:bg-gray-900 dark:text-white delay-100 flex p-4 h-full w-full">
+        <div className="flex-1 overflow-auto bg-white  dark:bg-gray-900 dark:text-white delay-100 flex h-full w-full">
           <div className="w-full">
             <Outlet />
           </div>
