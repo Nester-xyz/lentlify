@@ -5,20 +5,23 @@ import { SidebarList } from "./SidebarList";
 const SidebarNavigation = () => {
   const { sidebarLeftIsVisible } = useSidebar();
   const { pathname } = useLocation();
-  // const navigate = useNavigate();
 
   const activeItem = SidebarList.findIndex(
     (item) => item.sidebarPath === pathname
   );
 
   return (
-    <nav className="flex-1 overflow-y-auto p-2 ">
-      <ul className="space-y-0.5 w-full">
+    <nav
+      className={`flex-1 overflow-y-auto p-2 transition-all duration-300 ${
+        sidebarLeftIsVisible ? "w-60" : "w-20"
+      } bg-white dark:bg-gray-900`}
+    >
+      <ul className="space-y-2 w-full">
         {SidebarList.map((item, index) => {
           return (
             <li key={index}>
               <Link to={item.sidebarPath}>
-                <div className={`flex items-center p-1 w-full`}>
+                <div className={`flex items-center w-full`}>
                   {sidebarLeftIsVisible ? (
                     <span
                       className={` 
@@ -26,12 +29,12 @@ const SidebarNavigation = () => {
                           !sidebarLeftIsVisible ? "justify-center" : "space-x-3"
                         } rounded-lg cursor-pointer ${
                         activeItem === index
-                          ? "bg-gray-600 text-white"
-                          : "text-gray-400 hover:bg-gray-700"
+                          ? "bg-gray-700 text-white"
+                          : "text-gray-600 hover:bg-gray-200 dark:text-gray-400 dark:hover:bg-gray-700"
                       } transition-all duration-200  w-full
                         `}
                     >
-                      {item.sidebarIcon}
+                      {item.getIcon(activeItem === index)}
                       {item.sidebarItem}
                     </span>
                   ) : (
@@ -41,12 +44,12 @@ const SidebarNavigation = () => {
                           sidebarLeftIsVisible ? "justify-center" : "space-x-3"
                         } rounded-lg cursor-pointer ${
                         activeItem === index
-                          ? "bg-gray-600 text-white"
-                          : "text-gray-400 hover:bg-gray-700"
+                          ? "bg-gray-700 text-white"
+                          : "text-gray-600 hover:bg-gray-200 dark:text-gray-400 dark:hover:bg-gray-700"
                       } transition-all duration-200
                          `}
                     >
-                      {item.sidebarIcon}
+                      {item.getIcon(activeItem === index)}
                     </span>
                   )}
                 </div>

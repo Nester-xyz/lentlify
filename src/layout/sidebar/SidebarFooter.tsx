@@ -57,7 +57,7 @@ const SidebarFooter: React.FC = () => {
             tabIndex={-1}
           />
           <div
-            className="flex flex-col min-w-[180px] max-w-[90vw] rounded-xl shadow-2xl border border-gray-200 bg-white overflow-auto"
+            className="flex flex-col min-w-[180px] max-w-[90vw] rounded-xl shadow-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 overflow-auto"
             style={{
               position: "fixed",
               left: 16,
@@ -67,7 +67,7 @@ const SidebarFooter: React.FC = () => {
             onClick={(e) => e.stopPropagation()}
           >
             <button
-              className="px-5 py-3 text-left hover:bg-gray-200 text-gray-800 text-base font-medium transition-colors flex items-center gap-2"
+              className="px-5 py-3 text-left hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-800 dark:text-gray-200 text-base font-medium transition-colors flex items-center gap-2"
               onClick={() => {
                 closeModal();
                 navigate("/profile");
@@ -77,7 +77,7 @@ const SidebarFooter: React.FC = () => {
               <span>View Profile</span>
             </button>
             <button
-              className="px-5 py-3 text-left hover:bg-gray-200 text-red-600 text-base font-medium border-t border-gray-100 transition-colors flex items-center gap-2"
+              className="px-5 py-3 text-left hover:bg-gray-200 dark:hover:bg-gray-700 text-red-600 dark:text-red-400 text-base font-medium border-t border-gray-100 dark:border-gray-700 transition-colors flex items-center gap-2"
               onClick={() => {
                 logout();
                 closeModal();
@@ -94,15 +94,15 @@ const SidebarFooter: React.FC = () => {
   };
 
   return (
-    <div className="p-2 border-t dark:border-gray-700 border-gray-300 relative">
+    <div className="p-2 border-t border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 relative">
       <div
         ref={footerRef}
         onClick={handleLoginModal}
-        className={`flex items-center rounded-full cursor-pointer text-gray-300 hover:bg-gray-400 p-2 gap-3`}
+        className={`flex items-center rounded-full cursor-pointer text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-700 p-2 gap-3 transition-colors`}
         tabIndex={0}
         aria-haspopup="true"
       >
-        <div className="w-8 h-8 shrink-0 rounded-full overflow-hidden">
+        <div className="w-8 h-8 shrink-0 rounded-full overflow-hidden bg-blue-500">
           {profile?.image ? (
             <img
               src={profile.image}
@@ -110,13 +110,13 @@ const SidebarFooter: React.FC = () => {
               className="w-full h-full object-cover"
             />
           ) : (
-            <div className="w-full h-full bg-blue-500 flex items-center justify-center text-white font-bold">
+            <div className="w-full h-full flex items-center justify-center text-white font-bold">
               {profile?.name ? profile.name.charAt(0).toUpperCase() : "User"}
             </div>
           )}
         </div>
         {sidebarLeftIsVisible && (
-          <span className="font-medium text-gray-700">{profile?.name}</span>
+          <span className="font-medium text-gray-700 dark:text-gray-200">{profile?.name}</span>
         )}
       </div>
     </div>
