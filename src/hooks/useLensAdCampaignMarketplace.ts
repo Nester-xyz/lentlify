@@ -138,6 +138,42 @@ export const useLensAdCampaignMarketplace = () => {
     functionName: 'campaignCounter',
   });
 
+  // Function to get the total number of ad campaigns created
+  const getCampaignAdCount = async () => {
+    try {
+      if (!publicClient) {
+        console.error('Public client not available');
+        return 0;
+      }
+      const count = await publicClient.readContract({
+        ...lensAdCampaignConfig,
+        functionName: 'getCampaignAdCount',
+      });
+      return count;
+    } catch (error) {
+      console.error('Error getting campaign ad count:', error);
+      return 0;
+    }
+  };
+  
+  // Function to get the total number of campaign groups created
+  const getCampaignGroupCount = async () => {
+    try {
+      if (!publicClient) {
+        console.error('Public client not available');
+        return 0;
+      }
+      const count = await publicClient.readContract({
+        ...lensAdCampaignConfig,
+        functionName: 'getCampaignGroupCount',
+      });
+      return count;
+    } catch (error) {
+      console.error('Error getting campaign group count:', error);
+      return 0;
+    }
+  };
+
   const { data: groupCounter } = useReadContract({
     ...lensAdCampaignConfig,
     functionName: 'groupCounter',
@@ -994,6 +1030,8 @@ export const useLensAdCampaignMarketplace = () => {
     getCampaignGroup,
     getSellerCampaignGroups,
     getGroupPosts,
+    getCampaignAdCount,
+    getCampaignGroupCount,
     platformFeePercentage,
     totalFeesCollected,
     campaignCounter,
