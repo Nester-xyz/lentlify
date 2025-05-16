@@ -270,18 +270,18 @@ const CreateCampaignGroup: React.FC = () => {
     }, [address, getCampaignGroup, getSellerCampaignGroups, getGroupPosts, getCampaign, CONTRACT_ADDRESS]);
 
   return (
-    <div className="max-w-xl mx-auto py-8">
+    <div className="max-w-xl mx-auto py-8 bg-gray-50 dark:bg-gray-900 dark:text-white">
       {/* Campaign groups list */}
-              <div className="text-2xl font-bold mb-6 text-slate-500">ALL CAMPAIGNS</div>
+              <div className="text-2xl font-bold mb-6 text-gray-900 dark:text-white">ALL CAMPAIGNS</div>
               <div className="space-y-8">
                 {campaignGroups.map((group) => (
-                  <div 
-                    key={group.id} 
-                    className="bg-gray-800 rounded-lg overflow-hidden border border-gray-700 hover:border-blue-500 transition cursor-pointer"
-                    onClick={() => navigate(`/campaign-group/${group.id}`)}
+                  <div
+                    key={group.id}
+                    className="bg-white dark:bg-gray-800 rounded-lg overflow-hidden border border-gray-300 dark:border-gray-700 hover:border-blue-500 transition-colors duration-200 cursor-pointer"
+                    onClick={() => navigate(`/campaign/${group.id}`)}
                   >
                     {/* Cover photo */}
-                    <div className="h-48 bg-gray-700 relative">
+                    <div className="h-48 bg-gray-100 dark:bg-gray-700 relative">
                       {group.metadata?.coverPhoto ? (
                         <img 
                           src={group.metadata.coverPhoto} 
@@ -296,7 +296,7 @@ const CreateCampaignGroup: React.FC = () => {
                     {/* Profile section */}
                     <div className="px-6 pt-4 pb-6 relative">
                       {/* Profile photo */}
-                      <div className="absolute -top-16 left-6 w-32 h-32 rounded-full border-4 border-gray-800 overflow-hidden bg-gray-700">
+                      <div className="absolute -top-16 left-6 w-32 h-32 rounded-full border-4 border-gray-300 dark:border-gray-700 overflow-hidden bg-gray-100 dark:bg-gray-700">
                         {group.metadata?.profilePhoto ? (
                           <img 
                             src={group.metadata.profilePhoto} 
@@ -310,19 +310,19 @@ const CreateCampaignGroup: React.FC = () => {
                       
                       {/* Group info */}
                       <div className="ml-40">
-                        <h2 className="text-xl font-bold text-white">{group.metadata?.name || `Campaign Group #${group.id}`}</h2>
-                        <p className="text-gray-400 text-sm mb-2 truncate">{group.owner}</p>
-                        <p className="text-gray-300 mb-4">{group.metadata?.description || 'No description available'}</p>
+                        <h2 className="text-xl font-bold text-gray-900 dark:text-white">{group.metadata?.name || `Campaign Group #${group.id}`}</h2>
+                        <p className="text-gray-700 dark:text-gray-400 text-sm mb-2 truncate">{group.owner}</p>
+                        <p className="text-gray-600 dark:text-gray-300 mb-4">{group.metadata?.description || 'No description available'}</p>
                         
                         {/* Stats */}
-                        <div className="flex items-center text-sm text-gray-400 mt-4">
+                        <div className="flex items-center text-sm text-gray-700 dark:text-gray-400 mt-4">
                           <div className="flex items-center mr-6">
                             <span className="font-medium">{group.campaigns.length}</span>
                             <span className="ml-1">campaigns</span>
                           </div>
                           <div className="flex items-center">
-                            <FiExternalLink className="mr-1" />
-                            <span>View details</span>
+                            <FiExternalLink className="mr-1 text-gray-700 dark:text-gray-300" />
+                            <span className="text-gray-700 dark:text-gray-300">View details</span>
                           </div>
                         </div>
                       </div>

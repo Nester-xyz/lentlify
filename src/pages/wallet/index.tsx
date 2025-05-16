@@ -1,27 +1,44 @@
 import React from "react";
+import { useBalance, useAccount } from "wagmi";
+import type { Address } from "viem";
+import grassTokenLogo from "../../assets/GRASS_TOKEN_LOGO.png";
 
 const WalletPage: React.FC = () => {
-  // Placeholder wallet data
-  const balance = "0.00";
-  const address = "0x1234...abcd";
+  const { address } = useAccount();
+  const { data: balanceData } = useBalance({
+    address: address as Address,
+  });
 
   return (
-    <div className="wallet-page" style={{ maxWidth: 480, margin: "0 auto", padding: 32 }}>
-      <h1 style={{ fontSize: 32, fontWeight: 700, marginBottom: 24 }}>Wallet</h1>
-      <div style={{ background: "#fff", borderRadius: 12, boxShadow: "0 2px 8px #eee", padding: 24 }}>
-        <div style={{ marginBottom: 20 }}>
-          <strong>Balance:</strong>
-          <div style={{ fontSize: 24, color: "#16a34a", fontWeight: 600 }}>{balance} ETH</div>
+    <div className="wallet-page max-w-md mx-auto p-8 bg-white dark:bg-gray-900 min-h-screen">
+      <h1 className="text-3xl font-bold mb-6 text-gray-900 dark:text-white">
+        Wallet
+      </h1>
+      <div className="bg-white dark:bg-gray-700 rounded-lg shadow-md p-6">
+        <div className="mb-5">
+          <strong className="text-gray-700 dark:text-gray-300">Balance:</strong>
+          <div className="text-2xl font-semibold text-green-400 flex items-center gap-2">
+            {balanceData
+              ? parseFloat(balanceData.formatted).toFixed(4)
+              : "0.0000"}
+            <img
+              src={grassTokenLogo}
+              alt="GRASS"
+              className="inline-block w-8 h-8"
+            />
+          </div>
         </div>
-        <div style={{ marginBottom: 20 }}>
-          <strong>Address:</strong>
-          <div style={{ fontFamily: "monospace", fontSize: 16 }}>{address}</div>
+        <div className="mb-5">
+          <strong className="text-gray-700 dark:text-gray-300">Address:</strong>
+          <div className="font-mono text-sm text-gray-900 dark:text-gray-100 break-all">
+            {address}
+          </div>
         </div>
-        <div style={{ display: "flex", gap: 12 }}>
-          <button style={{ padding: "8px 20px", borderRadius: 8, background: "#2563eb", color: "#fff", border: "none", fontWeight: 600 }}>
+        <div className="flex gap-3">
+          <button className="px-5 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-md font-semibold transition">
             Deposit
           </button>
-          <button style={{ padding: "8px 20px", borderRadius: 8, background: "#f59e42", color: "#fff", border: "none", fontWeight: 600 }}>
+          <button className="px-5 py-2 bg-orange-500 hover:bg-orange-400 text-white rounded-md font-semibold transition">
             Withdraw
           </button>
         </div>

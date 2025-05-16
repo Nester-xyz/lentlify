@@ -154,10 +154,10 @@ export default function WalletSelector() {
                   <li key={acc.id}>
                     <div
                       onClick={() => setSelectedAccount(acc)}
-                      className={`w-full flex items-center px-4 py-2 border rounded-lg hover:bg-blue-50 ${
+                      className={`w-full flex items-center px-4 py-2 border rounded-lg hover:bg-blue-50 dark:hover:bg-gray-700 ${
                         selectedAccount && selectedAccount.id === acc.id
-                          ? "border-blue-500 bg-blue-100"
-                          : "border-gray-200"
+                          ? "border-blue-500 bg-blue-100 dark:bg-blue-900"
+                          : "border-gray-200 dark:border-gray-600 dark:bg-gray-800"
                       }`}
                     >
                       <span className="flex items-center gap-3 w-full justify-start">
@@ -244,10 +244,10 @@ export default function WalletSelector() {
                 <li key={acc.id}>
                   <div
                     onClick={() => setSelectedAccount(acc)}
-                    className={`w-full flex items-center px-4 py-2 border rounded-lg hover:bg-blue-50 ${
+                    className={`w-full flex items-center px-4 py-2 border rounded-lg hover:bg-blue-50 dark:hover:bg-gray-700 ${
                       selectedAccount && selectedAccount.id === acc.id
-                        ? "border-blue-500 bg-blue-100"
-                        : "border-gray-200"
+                        ? "border-blue-500 bg-blue-100 dark:bg-blue-900"
+                        : "border-gray-200 dark:border-gray-600 dark:bg-gray-800"
                     }`}
                   >
                     <span className="flex items-center gap-3 w-full justify-start">
@@ -316,7 +316,7 @@ export default function WalletSelector() {
             key={c!.id}
             disabled={isPending}
             onClick={() => connectAsync({ connector: c! })}
-            className="w-full flex items-center justify-between border rounded-xl px-4 py-3 hover:bg-gray-100"
+            className="w-full flex items-center justify-between border border-gray-200 bg-white dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 rounded-xl px-4 py-3 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-200"
           >
             <span>{WALLET_META[c!.id as keyof typeof WALLET_META].label}</span>
             <img
@@ -331,11 +331,11 @@ export default function WalletSelector() {
         ))}
 
       <div className="flex items-center my-2">
-        <div className="flex-grow h-px bg-gray-200" />
-        <span className="mx-2 text-gray-400 text-md font-medium select-none">
+        <div className="flex-grow h-px bg-gray-200 dark:bg-gray-700" />
+        <span className="mx-2 text-gray-400 dark:text-gray-500 text-md font-medium select-none">
           or
         </span>
-        <div className="flex-grow h-px bg-gray-200" />
+        <div className="flex-grow h-px bg-gray-200 dark:bg-gray-700" />
       </div>
 
       <div className="flex justify-center">

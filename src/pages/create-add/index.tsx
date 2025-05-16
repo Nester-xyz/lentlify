@@ -318,12 +318,15 @@ const createAd: React.FC = () => {
     return "Create Campaign";
   };
   return (
-    <div className="max-w-4xl mx-auto py-6 px-4">
-      <h1 className="text-3xl font-bold text-center mb-8">
+    <div className="max-w-4xl mx-auto py-6 px-4 bg-gray-50 dark:bg-gray-900 dark:text-white">
+      <h1 className="text-3xl font-bold text-center mb-8 text-gray-900 dark:text-white">
         Create Ad Campaign
       </h1>
       <CircularCard>
-        <form onSubmit={handleSubmit} className="space-y-8 bg-white rounded-xl">
+        <form
+          onSubmit={handleSubmit}
+          className="space-y-8 bg-white dark:bg-gray-800 dark:text-gray-300  dark:border-gray-700 rounded-xl"
+        >
           {/* Campaign Title */}
           <h2 className="text-2xl font-semibold mb-5">Create a new campaign</h2>
 

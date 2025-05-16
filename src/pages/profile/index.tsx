@@ -1,6 +1,4 @@
 import { UseAuth } from "@/context/auth/AuthContext";
-import { useBalance } from "wagmi";
-import type { Address } from "viem";
 import { useEffect, useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useLensAdCampaignMarketplace } from "@/hooks/useLensAdCampaignMarketplace";
@@ -99,10 +97,6 @@ const Profile = () => {
     return <div>Loading profile...</div>;
   }
 
-  const { data: balance } = useBalance({
-      address: profile?.address as Address,
-    });
-
   // Fetch campaign groups for the seller (current user)
   useEffect(() => {
     // Skip if wallet address is not available
@@ -136,7 +130,7 @@ const Profile = () => {
         console.log(`Fetching campaign groups for address: ${address}`);
         
         // Get all group IDs for the current user
-        const groupIds = await getSellerCampaignGroups(address as `0x${string}`) as unknown as bigint[];
+        const groupIds = await getSellerCampaignGroups(address) as unknown as bigint[];
         console.log('Group IDs:', groupIds);
         
         if (!groupIds || groupIds.length === 0) {
@@ -321,8 +315,7 @@ const Profile = () => {
             {profile.bio && (
               <p className="text-gray-700 dark:text-gray-300">{profile.bio}</p>
             )}
-            <p className="text-gray-500 dark:text-gray-400">{profile.address}</p>
-            {balance?.value && <p className="text-gray-500 dark:text-gray-400">{(Number(balance?.value) / 10 ** 18).toFixed(4)} GRASS</p>}
+            <p className="text-gray-500 dark:text-gray-400">{address}</p>
           </div>
         </div>
       </div>
@@ -417,7 +410,7 @@ const Profile = () => {
                 {/* Group info */}
                 <div className="ml-40">
                   <h2 className="text-xl font-bold text-white">{group.metadata?.name || `Campaign Group #${group.id}`}</h2>
-                  <p className="text-gray-400 text-sm mb-2 truncate">{group.owner}</p>
+                  <p className="text-gray-400 text-sm mb-2 truncate">{address}</p>
                   <p className="text-gray-300 mb-4">{group.metadata?.description || 'No description available'}</p>
                   
                   {/* Stats */}

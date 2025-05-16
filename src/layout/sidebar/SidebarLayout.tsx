@@ -4,11 +4,16 @@ import SidebarNavigtion from "./SidebarNavigation";
 import SidebarRight from "./SidebarRight";
 import SidebarFooter from "./SidebarFooter";
 import { Outlet } from "react-router-dom";
+import { useEffect } from "react";
 
 // SidebarLayout uses nested routes via <Outlet>
 
 const SidebarLayout = () => {
-  const { sidebarLeftIsVisible, sidebarRightIsVisible } = useSidebar();
+  const { sidebarLeftIsVisible, sidebarRightIsVisible, openSidebarRight } = useSidebar();
+
+  useEffect(() => {
+    if (!sidebarRightIsVisible) openSidebarRight();
+  }, [sidebarRightIsVisible, openSidebarRight]);
 
   return (
     <div className="flex h-screen w-screen relative bg-white dark:bg-gray-900 overflow-hidden">
