@@ -4,6 +4,8 @@ import { useLensAdCampaignMarketplace, ActionType } from "@/hooks/useLensAdCampa
 import { useNavigate } from "react-router-dom";
 import { FiExternalLink, FiClock, FiUser, FiHash, FiMessageSquare, FiRepeat } from "react-icons/fi";
 import { storageClient } from "@/lib/lens";
+import { UseAuth } from "@/context/auth/AuthContext";
+import { FaPlus } from "react-icons/fa";
 
 // Helper function to get action type name
 const getActionTypeName = (actionType: number): string => {
@@ -91,6 +93,7 @@ interface CampaignData {
 const CampaignGroupDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const {profile} = UseAuth();
   const { getCampaignGroup, getGroupPosts, getCampaignInfo, CONTRACT_ADDRESS } = useLensAdCampaignMarketplace();
   
   const [campaignGroup, setCampaignGroup] = useState<CampaignGroupData | null>(null);
@@ -378,10 +381,19 @@ const CampaignGroupDetail: React.FC = () => {
               </div>
             </div>
           </div>
-          
+              
           {/* Technical details section */}
           <div className="border-t border-gray-700 mt-6 p-6">
             <h3 className="text-lg font-medium text-white mb-4">Technical Details</h3>
+            {profile?.address === campaignGroup.owner && (<div className="flex justify-end m-4">
+              <button
+                  onClick={() => navigate("/create-ad")}
+                  className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition flex items-center"
+                >
+                  <FaPlus className="mr-2" /> Create AD
+              </button>
+            </div>)}
+
             <div className="bg-gray-900 p-4 rounded-md overflow-x-auto text-white">
               {campaigns.length > 0 ? (
                 <div className="space-y-4">
@@ -503,7 +515,7 @@ const CampaignGroupDetail: React.FC = () => {
                             onClick={() => window.open(campaign.metadata?.link || '#', '_blank')}
                           >
                             <FiRepeat className="mr-2" />
-                            Mirror for {campaign.likeReward ? (Number(campaign.likeReward) / 1e18).toFixed(4) : '0'} GRASS
+                            {ActionType[campaign.metadata?.actionType || 0]} {campaign.likeReward ? (Number(campaign.likeReward) / 1e18).toFixed(4) : '0'} GRASS
                           </button>
                         )}
                       </div>
