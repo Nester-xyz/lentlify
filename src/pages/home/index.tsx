@@ -1,12 +1,16 @@
 import { useSidebar } from "@/context/sidebar/SidebarContext";
 import { useEffect, useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { useLensAdCampaignMarketplace, ActionType } from "@/hooks/useLensAdCampaignMarketplace";
 import { useAccount } from "wagmi";
-import { FaPlus } from "react-icons/fa";
+import { useLensAdCampaignMarketplace, ActionType } from "@/hooks/useLensAdCampaignMarketplace";
 import { FiExternalLink, FiRepeat } from "react-icons/fi";
 import { storageClient } from "@/lib/lens";
 import { formatDistanceToNow } from 'date-fns';
+import { evmAddress, postId, uri } from "@lens-protocol/client";
+import { post, repost } from "@lens-protocol/client/actions";
+import { textOnly } from "@lens-protocol/metadata";
+import { FaPlus } from "react-icons/fa";
+import { UseAuth } from "@/context/auth/AuthContext";
 
 // Define the campaign data structure for display
 interface CampaignData {
@@ -34,6 +38,8 @@ interface CampaignData {
     image?: string;
     link?: string;
     actionType?: number;
+    commentText?: string;
+    quoteText?: string;
   };
 }
 
@@ -67,10 +73,19 @@ const Home = () => {
   const navigate = useNavigate();
   const { address } = useAccount();
   const { openSidebarRight, sidebarRightIsVisible } = useSidebar();
+  const { sessionClient, isAuthorized, profile } = UseAuth();
+  
+  // Debug auth status
+  useEffect(() => {
+    console.log('Auth status:', { isAuthorized, sessionClient, profile });
+    console.log('Session client available:', !!sessionClient);
+  }, [isAuthorized, sessionClient, profile]);
+  
   const {
     getCampaignInfo,
     getCampaignAdCount,
     CONTRACT_ADDRESS,
+    isLoading: isContractLoading,
   } = useLensAdCampaignMarketplace();
 
   // State for campaigns and loading status
@@ -86,6 +101,106 @@ const Home = () => {
   useEffect(() => {
     console.log("Current wallet address:", address);
   }, [address]);
+  
+  // Handle execute action when buy/claim button is clicked
+  const handleExecuteAction = async (campaign: CampaignData) => {
+    try {
+      if (!address) {
+        console.error("Wallet not connected");
+        return;
+      }
+
+      // Get the action type from campaign metadata
+      const actionType = campaign.metadata?.actionType || 0;
+      console.log(`Executing Lens action type: ${actionType} on post ${campaign.postId}`);
+      console.log("Campaign details:", campaign);
+      
+      // Debug auth status at the time of action execution
+      console.log('Auth status at execution time:', { isAuthorized, sessionClient, profile });
+      
+      // Check if session client is available and user is authorized
+      if (!sessionClient || !isAuthorized) {
+        console.error("No Lens session client available or not authorized. Please make sure you're logged in to Lens Protocol.");
+        alert("Please log in to Lens Protocol to perform this action.");
+        return;
+      }
+
+      let result;
+      
+      // Execute different actions based on the action type
+      switch (actionType) {
+        case 1: // MIRROR (Repost)
+          console.log(`Executing MIRROR action on post ${campaign.postId}`);
+          result = await repost(sessionClient, {
+            post: postId(campaign.postId),
+          });
+          break;
+          
+        case 2: // COMMENT
+          console.log(`Executing COMMENT action on post ${campaign.postId}`);
+          // Use comment text from metadata if available, otherwise use a default
+          const commentText = campaign.metadata?.commentText || "Great content! #lentlify";
+          
+          // Create proper metadata for the comment
+          const commentMetadata = textOnly({
+            content: commentText,
+          });
+          
+          // Upload the metadata to get a proper Lens URI
+          const commentUpload = await storageClient.uploadAsJson(commentMetadata);
+          console.log('Comment metadata uploaded with URI:', commentUpload.uri);
+          
+          // Post the comment using the generated URI
+          result = await post(sessionClient, {
+            contentUri: uri(commentUpload.uri),
+            commentOn: {
+              post: postId(campaign.postId),
+            }
+            // Removed feed parameter that was causing 'Feed does not exist' error
+          });
+          break;
+          
+        case 3: // QUOTE
+          console.log(`Executing QUOTE action on post ${campaign.postId}`);
+          // Use quote text from metadata if available, otherwise use a default
+          const quoteText = campaign.metadata?.quoteText || "Check out this interesting content! #lentlify";
+          
+          // Create proper metadata for the quote
+          const quoteMetadata = textOnly({
+            content: quoteText,
+          });
+          
+          // Upload the metadata to get a proper Lens URI
+          const quoteUpload = await storageClient.uploadAsJson(quoteMetadata);
+          console.log('Quote metadata uploaded with URI:', quoteUpload.uri);
+          
+          // Post the quote using the generated URI
+          result = await post(sessionClient, {
+            contentUri: quoteUpload.uri,
+            quoteOf: {
+              post: postId(campaign.postId),
+            },
+          });
+          break;
+          
+        default:
+          console.error(`Unknown action type: ${actionType}`);
+          return;
+      }
+
+      // Check if the operation was successful
+      if (result && 'isErr' in result && result.isErr()) {
+        console.error("Lens Protocol action failed:", result.error);
+        return;
+      }
+      
+      console.log(`Action ${actionType} executed successfully:`, result);
+
+      console.log(`Ready to execute actions...`)
+    } catch (error) {
+      console.error("Error executing action:", error);
+    }
+  };
 
   useEffect(() => {
     console.log("Contract address:", CONTRACT_ADDRESS);
@@ -372,10 +487,15 @@ const Home = () => {
                   {campaign.status === 1 && campaign.availableLikeSlots && Number(campaign.availableLikeSlots) > 0 && (
                     <button 
                       className="w-full mt-2 bg-gradient-to-r from-green-600 to-green-800 hover:from-green-700 hover:to-green-900 text-white font-medium py-2 px-4 rounded-md flex items-center justify-center transition-colors"
-                      onClick={() => window.open(campaign.metadata?.link || '#', '_blank')}
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        handleExecuteAction(campaign);
+                      }}
+                      disabled={isContractLoading}
                     >
                       <FiRepeat className="mr-2" />
-                      {ActionType[campaign.metadata?.actionType || 0]} for {campaign.likeReward ? (Number(campaign.likeReward) / 1e18).toFixed(4) : '0'} GRASS
+                      {isContractLoading ? 'Processing...' : `${ActionType[campaign.metadata?.actionType || 0]} for ${campaign.likeReward ? (Number(campaign.likeReward) / 1e18).toFixed(4) : '0'} GRASS`}
                     </button>
                   )}
                 </div>

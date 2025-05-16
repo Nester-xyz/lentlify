@@ -1015,113 +1015,113 @@ export const useLensAdCampaignMarketplace = () => {
     isUpdateFeeCollectorConfirmed;
 
   return {
-    // Contract info
-    CONTRACT_ADDRESS,
-    lensAdCampaignConfig,
-    
-    // Read functions
-    getCampaign,
-    getCampaignInfo,
-    getSellerCampaigns,
-    getCampaignInfluencerActions,
-    hasPerformedAction,
-    hasParticipated,
-    hasClaimedReward,
-    getCampaignGroup,
-    getSellerCampaignGroups,
-    getGroupPosts,
-    getCampaignAdCount,
-    getCampaignGroupCount,
-    platformFeePercentage,
-    totalFeesCollected,
-    campaignCounter,
-    groupCounter,
-    
-    // Write functions
-    createCampaign,
-    updateCampaignStatus,
-    updateCampaignSlots,
-    updateCampaignPrices,
-    extendCampaignTime,
-    updateCampaignContent,
-    createCampaignGroup,
-    claimReward,
-    refundDeposits,
-    refundDisplayFee,
-    collectFees,
-    updatePlatformFee,
-    updateFeeCollector,
-    claimBalanceLens,
-    
-    // Lens Account functionality
-    executeLensTransaction,
-    isLensTransactionPending,
-    lensTransactionHash,
-    useLensAccount,
-    activeLensAddress,
-    
-    // Loading and success states
-    isLoading,
-    isSuccess,
-    
-    // Pending states
-    isCreateCampaignPending,
-    isUpdateStatusPending,
-    isUpdateSlotsPending,
-    isUpdatePricesPending,
-    isExtendTimePending,
-    isUpdateContentPending,
-    isCreateGroupPending,
-    isClaimRewardPending,
-    isRefundDepositsPending,
-    isRefundDisplayFeePending,
-    isCollectFeesPending,
-    isUpdatePlatformFeePending,
-    isUpdateFeeCollectorPending,
-    
-    // Confirming states
-    isCreateCampaignConfirming,
-    isUpdateStatusConfirming,
-    isUpdateSlotsConfirming,
-    isUpdatePricesConfirming,
-    isExtendTimeConfirming,
-    isUpdateContentConfirming,
-    isCreateGroupConfirming,
-    isClaimRewardConfirming,
-    isRefundDepositsConfirming,
-    isRefundDisplayFeeConfirming,
-    isCollectFeesConfirming,
-    isUpdatePlatformFeeConfirming,
-    isUpdateFeeCollectorConfirming,
-    
-    // Success states
-    isCreateCampaignConfirmed,
-    isUpdateStatusConfirmed,
-    isUpdateSlotsConfirmed,
-    isUpdatePricesConfirmed,
-    isExtendTimeConfirmed,
-    isUpdateContentConfirmed,
-    isCreateGroupConfirmed,
-    isClaimRewardConfirmed,
-    isRefundDepositsConfirmed,
-    isRefundDisplayFeeConfirmed,
-    isCollectFeesConfirmed,
-    isUpdatePlatformFeeConfirmed,
-    isUpdateFeeCollectorConfirmed,
-    
-    // Transaction hashes
-    createCampaignHash,
-    updateStatusHash,
-    updateSlotsHash,
-    updatePricesHash,
-    extendTimeHash,
-    updateContentHash,
-    createGroupHash,
-    claimRewardHash,
-    refundDepositsHash,
-    refundDisplayFeeHash,
-    collectFeesHash,
-    updatePlatformFeeHash,
-    updateFeeCollectorHash
-  };
-};
+        // Contract info
+        CONTRACT_ADDRESS,
+        lensAdCampaignConfig,
+        
+        // Read functions
+        getCampaign,
+        getCampaignInfo,
+        getSellerCampaigns,
+        getCampaignInfluencerActions,
+        hasPerformedAction,
+        hasParticipated,
+        hasClaimedReward,
+        getCampaignGroup,
+        getSellerCampaignGroups,
+        getGroupPosts,
+        getCampaignAdCount,
+        getCampaignGroupCount,
+        platformFeePercentage,
+        totalFeesCollected,
+        campaignCounter,
+        groupCounter,
+        
+        // Write functions
+        createCampaign,
+        updateCampaignStatus,
+        updateCampaignSlots,
+        updateCampaignPrices,
+        extendCampaignTime,
+        updateCampaignContent,
+        createCampaignGroup,
+        claimReward,
+        refundDeposits,
+        refundDisplayFee,
+        collectFees,
+        updatePlatformFee,
+        updateFeeCollector,
+        claimBalanceLens,
+        
+        // Lens Account functionality
+        executeLensTransaction,
+        isLensTransactionPending,
+        lensTransactionHash,
+        useLensAccount,
+        activeLensAddress,
+        
+        // Loading and success states
+        isLoading,
+        isSuccess,
+        
+        // Pending states
+        isCreateCampaignPending,
+        isUpdateStatusPending,
+        isUpdateSlotsPending,
+        isUpdatePricesPending,
+        isExtendTimePending,
+        isUpdateContentPending,
+        isCreateGroupPending,
+        isClaimRewardPending,
+        isRefundDepositsPending,
+        isRefundDisplayFeePending,
+        isCollectFeesPending,
+        isUpdatePlatformFeePending,
+        isUpdateFeeCollectorPending,
+        
+        // Confirming states
+        isCreateCampaignConfirming,
+        isUpdateStatusConfirming,
+        isUpdateSlotsConfirming,
+        isUpdatePricesConfirming,
+        isExtendTimeConfirming,
+        isUpdateContentConfirming,
+        isCreateGroupConfirming,
+        isClaimRewardConfirming,
+        isRefundDepositsConfirming,
+        isRefundDisplayFeeConfirming,
+        isCollectFeesConfirming,
+        isUpdatePlatformFeeConfirming,
+        isUpdateFeeCollectorConfirming,
+        
+        // Success states
+        isCreateCampaignConfirmed,
+        isUpdateStatusConfirmed,
+        isUpdateSlotsConfirmed,
+        isUpdatePricesConfirmed,
+        isExtendTimeConfirmed,
+        isUpdateContentConfirmed,
+        isCreateGroupConfirmed,
+        isClaimRewardConfirmed,
+        isRefundDepositsConfirmed,
+        isRefundDisplayFeeConfirmed,
+        isCollectFeesConfirmed,
+        isUpdatePlatformFeeConfirmed,
+        isUpdateFeeCollectorConfirmed,
+        
+        // Transaction hashes
+        createCampaignHash,
+        updateStatusHash,
+        updateSlotsHash,
+        updatePricesHash,
+        extendTimeHash,
+        updateContentHash,
+        createGroupHash,
+        claimRewardHash,
+        refundDepositsHash,
+        refundDisplayFeeHash,
+        collectFeesHash,
+        updatePlatformFeeHash,
+        updateFeeCollectorHash
+      };
+    }
