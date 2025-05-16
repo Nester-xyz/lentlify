@@ -515,7 +515,7 @@ const CampaignGroupDetail: React.FC = () => {
                             onClick={() => window.open(campaign.metadata?.link || '#', '_blank')}
                           >
                             <FiRepeat className="mr-2" />
-                            Mirror for {campaign.likeReward ? (Number(campaign.likeReward) / 1e18).toFixed(4) : '0'} GRASS
+                            {ActionType[campaign.metadata?.actionType || 0]} {campaign.likeReward ? (Number(campaign.likeReward) / 1e18).toFixed(4) : '0'} GRASS
                           </button>
                         )}
                       </div>

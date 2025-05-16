@@ -45,6 +45,12 @@ const Home = () => {
             >
               Create New Ad
             </button>
+            <button
+              onClick={() => navigate("/create")}
+              className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-blue-700 transition flex items-center"
+            >
+              <FaPlus className="mr-2" /> Create Campaign
+            </button>
           </div>
         </div>
         

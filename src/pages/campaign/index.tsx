@@ -4,8 +4,6 @@ import { storageClient } from "@/lib/lens";
 import { useLensAdCampaignMarketplace } from "@/hooks/useLensAdCampaignMarketplace";
 import { UseAuth } from "@/context/auth/AuthContext";
 import { useAccount } from "wagmi";
-import { useBalance } from "wagmi";
-import type { Address } from "viem";
 import { useRef } from "react";
 import { FiExternalLink } from "react-icons/fi";
 
