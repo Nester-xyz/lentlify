@@ -508,6 +508,25 @@ const CampaignGroupDetail: React.FC = () => {
                           </div>
                         </div>
                         
+                        {/* Comment/Quote Instructions */}
+                        {campaign.status === 1 && (
+                          <div className="mt-3 pt-2 border-t border-gray-700">
+                            {campaign.metadata?.actionType === ActionType.COMMENT && campaign.metadata?.commentText && (
+                              <div className="mb-2">
+                                <div className="text-xs font-semibold text-gray-300 mb-1">What to comment:</div>
+                                <div className="text-xs text-gray-400 bg-gray-800 p-2 rounded">{campaign.metadata.commentText}</div>
+                              </div>
+                            )}
+                            
+                            {campaign.metadata?.actionType === ActionType.QUOTE && campaign.metadata?.quoteText && (
+                              <div className="mb-2">
+                                <div className="text-xs font-semibold text-gray-300 mb-1">What to quote:</div>
+                                <div className="text-xs text-gray-400 bg-gray-800 p-2 rounded">{campaign.metadata.quoteText}</div>
+                              </div>
+                            )}
+                          </div>
+                        )}
+                        
                         {/* Mirror Button */}
                         {campaign.status === 1 && campaign.availableLikeSlots && Number(campaign.availableLikeSlots) > 0 && (
                           <button 
