@@ -81,6 +81,7 @@ const CreateCampaignGroup: React.FC = () => {
     getCampaignGroup, 
     getCampaign,
     getGroupPosts,
+    getCampaignGroupCount,
     CONTRACT_ADDRESS
   } = useLensAdCampaignMarketplace();
 
@@ -127,18 +128,29 @@ const CreateCampaignGroup: React.FC = () => {
           
           // Update last fetch time
           lastFetchTimeRef.current = now;
-          console.log(`Fetching campaign groups for address: ${address}`);
           
-          // Get all group IDs for the current user
-          const groupIds = await getSellerCampaignGroups(address as `0x${string}`) as unknown as bigint[];
-          console.log('Group IDs:', groupIds);
+          // Get total campaign group count
+          const totalGroups = await getCampaignGroupCount();
+          console.log(`Total campaign groups: ${totalGroups}`);
           
-          if (!groupIds || groupIds.length === 0) {
-            console.log('No groups found for this user');
+          if (!totalGroups) {
+            console.log('No campaign groups found');
             setCampaignGroups([]);
             setIsLoading(false);
             return;
           }
+          
+          // Calculate the range of groups to fetch (all groups)
+          // The contract returns a number that's 1 higher than the actual highest group ID
+          const startId = Number(totalGroups); // Actual highest ID
+          const groupIds: number[] = [];
+          
+          // Create an array of all group IDs in descending order (newest first)
+          for (let i = startId; i >= 1; i--) {
+            groupIds.push(i);
+          }
+          
+          console.log(`Fetching ${groupIds.length} campaign groups`);
   
           const groupsData: CampaignGroupData[] = [];
   
@@ -267,7 +279,7 @@ const CreateCampaignGroup: React.FC = () => {
         console.log('Cleaning up polling interval');
         clearInterval(pollingInterval);
       };
-    }, [address, getCampaignGroup, getSellerCampaignGroups, getGroupPosts, getCampaign, CONTRACT_ADDRESS]);
+    }, [address, getCampaignGroup, getCampaignGroupCount, getGroupPosts, getCampaign, CONTRACT_ADDRESS]);
 
   return (
     <div className="max-w-xl mx-auto py-8">
