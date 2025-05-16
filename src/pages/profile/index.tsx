@@ -1,4 +1,6 @@
 import { UseAuth } from "@/context/auth/AuthContext";
+import { useBalance } from "wagmi";
+import type { Address } from "viem";
 
 const Profile = () => {
   const { profile } = UseAuth();
@@ -6,6 +8,10 @@ const Profile = () => {
   if (!profile) {
     return <div>Loading profile...</div>;
   }
+
+  const { data: balance } = useBalance({
+      address: profile?.address as Address,
+    });
 
   return (
     <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg overflow-hidden max-w-2xl mx-auto">
@@ -52,6 +58,7 @@ const Profile = () => {
             <p className="text-gray-700 dark:text-gray-300">{profile.bio}</p>
           )}
           <p className="text-gray-500 dark:text-gray-400">{profile.address}</p>
+          {balance?.value && <p className="text-gray-500 dark:text-gray-400">{(Number(balance?.value) / 10 ** 18).toFixed(4)} GRASS</p>}
         </div>
       </div>
     </div>

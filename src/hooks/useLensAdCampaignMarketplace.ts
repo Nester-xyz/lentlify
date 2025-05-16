@@ -5,6 +5,7 @@ import { contractAddress, paymentTokenAddress } from '../constants/addresses';
 import { abi } from '../constants/abi';
 import { useSessionClient } from '../context/session/sessionContext';
 import type { Address } from 'viem';
+import { UseAuth } from '@/context/auth/AuthContext';
 
 const CONTRACT_ADDRESS = contractAddress;
 const LENS_AD_CAMPAIGN_ABI = abi;
@@ -48,7 +49,7 @@ export enum ActionType {
 // Function to approve token spending
 export const useTokenApproval = () => {
   const { writeContract: writeApprove } = useWriteContract();
-  const publicClient = usePublicClient();
+ 
   const { address: accountAddress } = useAccount();
   
   const approveTokenSpending = async (amount: bigint) => {
@@ -104,20 +105,22 @@ export const useLensAdCampaignMarketplace = () => {
   const { address } = useAccount();
   const { activeLensAddress } = useSessionClient();
   const publicClient = usePublicClient();
+  const {profile} = UseAuth();
+
   const { data: balance } = useBalance({
-    address: activeLensAddress as Address,
+    address: profile?.address as Address,
   });
   
   // Check if we should use Lens account
-  const useLensAccount = !!activeLensAddress;
+  const useLensAccount = !!profile?.address;
   
   // Log the addresses being used
   useEffect(() => {
     if (useLensAccount) {
-      console.log('Using Lens smart wallet address:', activeLensAddress);
+      console.log('Using Lens smart wallet address:', profile?.address);
       console.log('Connected wallet address:', address);
     }
-  }, [useLensAccount, activeLensAddress, address]);
+  }, [useLensAccount, profile?.address, address]);
 
   // Read functions
   const { data: platformFeePercentage } = useReadContract({
@@ -349,26 +352,110 @@ export const useLensAdCampaignMarketplace = () => {
     value?: bigint;
   }) => {
     try {
-      if (!activeLensAddress) throw new Error('No Lens account address available');
+      if (!profile?.address) throw new Error('No Lens account address available');
       
       console.log('Starting Lens transaction...', {
         targetFunction,
         args,
         value,
-        lensAccount: activeLensAddress,
+        lensAccount: profile.address,
         targetContract: CONTRACT_ADDRESS
       });
 
-      const encodedData = encodeFunctionData({
-        abi: LENS_AD_CAMPAIGN_ABI,
-        functionName: targetFunction,
-        args: args
-      });
+      // Encode the function data for the target contract
+      let encodedData;
+      
+      // Special handling for createAdCampaign which needs a custom ABI
+      if (targetFunction === 'createAdCampaign') {
+        const createAdCampaignABI = [
+          {
+            "inputs": [
+              {
+                "internalType": "uint256",
+                "name": "_groupId",
+                "type": "uint256"
+              },
+              {
+                "internalType": "string",
+                "name": "_postId",
+                "type": "string"
+              },
+              {
+                "internalType": "enum ActionType",
+                "name": "_actionType",
+                "type": "uint8"
+              },
+              {
+                "internalType": "uint256",
+                "name": "_availableSlots",
+                "type": "uint256"
+              },
+              {
+                "components": [
+                  {
+                    "internalType": "uint256",
+                    "name": "startTime",
+                    "type": "uint256"
+                  },
+                  {
+                    "internalType": "uint256",
+                    "name": "endTime",
+                    "type": "uint256"
+                  }
+                ],
+                "internalType": "struct AdDisplayTimePeriod",
+                "name": "_adDisplayPeriod",
+                "type": "tuple"
+              },
+              {
+                "internalType": "string",
+                "name": "_groveContentURI",
+                "type": "string"
+              },
+              {
+                "internalType": "string",
+                "name": "_contentHash",
+                "type": "string"
+              },
+              {
+                "internalType": "uint256",
+                "name": "_rewardClaimableTime",
+                "type": "uint256"
+              },
+              {
+                "internalType": "uint256",
+                "name": "_minFollowersCount",
+                "type": "uint256"
+              }
+            ],
+            "name": "createAdCampaign",
+            "outputs": [],
+            "stateMutability": "payable",
+            "type": "function"
+          }
+        ];
+        
+        encodedData = encodeFunctionData({
+          abi: createAdCampaignABI,
+          functionName: 'createAdCampaign',
+          args: args
+        });
+        console.log('Using custom ABI for createAdCampaign');
+      } else {
+        // For other functions, use the standard ABI
+        encodedData = encodeFunctionData({
+          abi: LENS_AD_CAMPAIGN_ABI,
+          functionName: targetFunction,
+          args: args
+        });
+      }
 
       console.log('Encoded function data:', encodedData);
-
-      const txResponse = writeLensTransaction({
-        address: activeLensAddress,
+      
+      // Use writeLensTransaction to execute the transaction through the Lens smart wallet
+      // This matches the approach used in createCampaignGroup
+      return writeLensTransaction({
+        address: profile.address as `0x${string}`,
         abi: accountABI,
         functionName: 'executeTransaction',
         args: [
@@ -376,11 +463,10 @@ export const useLensAdCampaignMarketplace = () => {
           value,
           encodedData
         ],
-        gas: 300000n,
+        gas: 500000n, // Set a reasonable gas limit to prevent excessive fees
       });
 
-      console.log('Transaction response:', txResponse);
-      return txResponse;
+      // Return is already handled in the writeLensTransaction call above
     } catch (error: any) {
       console.error('Detailed error executing Lens transaction:', {
         error,
@@ -461,6 +547,7 @@ export const useLensAdCampaignMarketplace = () => {
     hash: updateFeeCollectorHash,
   });
 
+
   // Create campaign function
   const createCampaign = async (
     postId: string,
@@ -475,7 +562,7 @@ export const useLensAdCampaignMarketplace = () => {
     rewardTimeEnd: number,
     groveContentURI: string,
     contentHash: string,
-    useSmartWallet = false,
+    useSmartWallet = true,
     groupId: number = 0, // Add groupId parameter with default value of 0
     targetAudience?: {
       minAge: number;
@@ -513,107 +600,30 @@ export const useLensAdCampaignMarketplace = () => {
         BigInt(minFollowersRequired)
       ];
       
-      // Log args safely by converting BigInts to strings
-      console.log('Complete args array:', args.map(arg => {
-        if (typeof arg === 'bigint') {
-          return arg.toString();
-        } else if (typeof arg === 'object' && arg !== null) {
-          // Handle objects that might contain BigInts
-          const safeObj: Record<string, any> = {};
-          Object.entries(arg).forEach(([key, val]) => {
-            safeObj[key] = typeof val === 'bigint' ? val.toString() : val;
-          });
-          return safeObj;
-        } else {
-          return arg;
-        }
-      }));
+      console.log('Executing createAdCampaign with args:', args);
+      console.log('Profile address from auth:', profile?.address);
+      
+      // ALWAYS use the Lens smart wallet if a profile address is available, regardless of useSmartWallet parameter
+      if (profile?.address) {
+        console.log('*** ALWAYS USING LENS ACCOUNT FOR createAdCampaign ***');
+        console.log('Using Lens Account for createAdCampaign');
+        return executeLensTransaction({
+          targetFunction: 'createAdCampaign',
+          args: args,
+          value: value
+        });
+      }
       
       console.log('Using direct contract call for createAdCampaign');
-      console.log('Value being sent with transaction:', value?.toString());
       
-      // Create a custom ABI for the createAdCampaign function that matches the actual contract implementation
-      const createAdCampaignABI = [
-        {
-          "inputs": [
-            {
-              "internalType": "uint256",
-              "name": "_groupId",
-              "type": "uint256"
-            },
-            {
-              "internalType": "string",
-              "name": "_postId",
-              "type": "string"
-            },
-            {
-              "internalType": "enum ActionType",
-              "name": "_actionType",
-              "type": "uint8"
-            },
-            {
-              "internalType": "uint256",
-              "name": "_availableSlots",
-              "type": "uint256"
-            },
-            {
-              "components": [
-                {
-                  "internalType": "uint256",
-                  "name": "startTime",
-                  "type": "uint256"
-                },
-                {
-                  "internalType": "uint256",
-                  "name": "endTime",
-                  "type": "uint256"
-                }
-              ],
-              "internalType": "struct AdDisplayTimePeriod",
-              "name": "_adDisplayPeriod",
-              "type": "tuple"
-            },
-            {
-              "internalType": "string",
-              "name": "_groveContentURI",
-              "type": "string"
-            },
-            {
-              "internalType": "string",
-              "name": "_contentHash",
-              "type": "string"
-            },
-            {
-              "internalType": "uint256",
-              "name": "_rewardClaimableTime",
-              "type": "uint256"
-            },
-            {
-              "internalType": "uint256",
-              "name": "_minFollowersCount",
-              "type": "uint256"
-            }
-          ],
-          "name": "createAdCampaign",
-          "outputs": [],
-          "stateMutability": "payable",
-          "type": "function"
-        }
-      ];
-      
-      // Use encodeFunctionData to prepare the transaction data with the correct ABI
-      const data = encodeFunctionData({
-        abi: createAdCampaignABI,
-        functionName: 'createAdCampaign',
-        args,
-      });
-      
-      console.log('Transaction data prepared, sending to wallet...');
-      
-      // Use sendTransaction which more reliably triggers the MetaMask popup
+      // Use sendTransaction for direct contract call
       return sendTransaction({
         to: lensAdCampaignConfig.address,
-        data,
+        data: encodeFunctionData({
+          abi: lensAdCampaignConfig.abi,
+          functionName: 'createAdCampaign',
+          args,
+        }),
         value,
         gas: 500000n, // Higher gas limit for complex function
       });
@@ -631,7 +641,7 @@ export const useLensAdCampaignMarketplace = () => {
   // Update campaign status
   const updateCampaignStatus = async (campaignId: number, status: CampaignStatus, useSmartWallet = false) => {
     try {
-      if (useSmartWallet && activeLensAddress) {
+      if (useSmartWallet && profile?.address) {
         console.log('Using Lens Account for updateCampaignStatus');
         return executeLensTransaction({
           targetFunction: 'updateCampaignStatus',
@@ -655,7 +665,7 @@ export const useLensAdCampaignMarketplace = () => {
   // Update campaign slots
   const updateCampaignSlots = async (campaignId: number, newSlots: number, useSmartWallet = false) => {
     try {
-      if (useSmartWallet && activeLensAddress) {
+      if (useSmartWallet && profile?.address) {
         console.log('Using Lens Account for updateCampaignSlots');
         return executeLensTransaction({
           targetFunction: 'updateCampaignSlots',
@@ -679,7 +689,7 @@ export const useLensAdCampaignMarketplace = () => {
   // Update campaign prices
   const updateCampaignPrices = async (campaignId: number, newRewardAmount: bigint, useSmartWallet = false) => {
     try {
-      if (useSmartWallet && activeLensAddress) {
+      if (useSmartWallet && profile?.address) {
         console.log('Using Lens Account for updateCampaignPrices');
         return executeLensTransaction({
           targetFunction: 'updateCampaignPrices',
@@ -703,7 +713,7 @@ export const useLensAdCampaignMarketplace = () => {
   // Extend campaign time
   const extendCampaignTime = async (campaignId: number, newEndTime: number, useSmartWallet = false) => {
     try {
-      if (useSmartWallet && activeLensAddress) {
+      if (useSmartWallet && profile?.address) {
         console.log('Using Lens Account for extendCampaignTime');
         return executeLensTransaction({
           targetFunction: 'extendCampaignTime',
@@ -727,7 +737,7 @@ export const useLensAdCampaignMarketplace = () => {
   // Update campaign content
   const updateCampaignContent = async (campaignId: number, groveContentURI: string, contentHash: string, useSmartWallet = false) => {
     try {
-      if (useSmartWallet && activeLensAddress) {
+      if (useSmartWallet && profile?.address) {
         console.log('Using Lens Account for updateCampaignContent');
         return executeLensTransaction({
           targetFunction: 'updateCampaignContent',
@@ -749,18 +759,18 @@ export const useLensAdCampaignMarketplace = () => {
   };
 
   // Create campaign group
-  const createCampaignGroup = async (groupURI: string, useSmartWallet = false) => {
+  const createCampaignGroup = async (groupURI: string, useSmartWallet = true) => {
     try {
-      console.log('Executing createCampaignGroup with URI:', groupURI);
+      console.log('Executing createCampaignGroup with URI:', groupURI, useSmartWallet, profile?.address, address);
       
-      if (useSmartWallet && activeLensAddress) {
+      if (useSmartWallet && profile?.address) {
         console.log('Using Lens Account for createCampaignGroup');
         return executeLensTransaction({
           targetFunction: 'createCampaignGroup',
           args: [groupURI],
         });
       }
-
+      
       console.log('Using direct contract call for createCampaignGroup');
       return writeCreateGroup({
         ...lensAdCampaignConfig,
@@ -777,7 +787,7 @@ export const useLensAdCampaignMarketplace = () => {
   // Claim reward
   const claimReward = async (campaignId: number, useSmartWallet = false) => {
     try {
-      if (useSmartWallet && activeLensAddress) {
+      if (useSmartWallet && profile?.address) {
         console.log('Using Lens Account for claimReward');
         return executeLensTransaction({
           targetFunction: 'claimReward',
@@ -801,7 +811,7 @@ export const useLensAdCampaignMarketplace = () => {
   // Refund deposits
   const refundDeposits = async (campaignId: number, useSmartWallet = false) => {
     try {
-      if (useSmartWallet && activeLensAddress) {
+      if (useSmartWallet && profile?.address) {
         console.log('Using Lens Account for refundDeposits');
         return executeLensTransaction({
           targetFunction: 'refundDeposits',
@@ -825,7 +835,7 @@ export const useLensAdCampaignMarketplace = () => {
   // Refund display fee
   const refundDisplayFee = async (campaignId: number, useSmartWallet = false) => {
     try {
-      if (useSmartWallet && activeLensAddress) {
+      if (useSmartWallet && profile?.address) {
         console.log('Using Lens Account for refundDisplayFee');
         return executeLensTransaction({
           targetFunction: 'refundDisplayFee',
@@ -849,7 +859,7 @@ export const useLensAdCampaignMarketplace = () => {
   // Collect fees
   const collectFees = async (useSmartWallet = false) => {
     try {
-      if (useSmartWallet && activeLensAddress) {
+      if (useSmartWallet && profile?.address) {
         console.log('Using Lens Account for collectFees');
         return executeLensTransaction({
           targetFunction: 'collectFees',
@@ -873,7 +883,7 @@ export const useLensAdCampaignMarketplace = () => {
   // Update platform fee
   const updatePlatformFee = async (newFeePercentage: number, useSmartWallet = false) => {
     try {
-      if (useSmartWallet && activeLensAddress) {
+      if (useSmartWallet && profile?.address) {
         console.log('Using Lens Account for updatePlatformFee');
         return executeLensTransaction({
           targetFunction: 'updatePlatformFee',
@@ -897,7 +907,7 @@ export const useLensAdCampaignMarketplace = () => {
   // Update fee collector
   const updateFeeCollector = async (newFeeCollector: `0x${string}`, useSmartWallet = false) => {
     try {
-      if (useSmartWallet && activeLensAddress) {
+      if (useSmartWallet && profile?.address) {
         console.log('Using Lens Account for updateFeeCollector');
         return executeLensTransaction({
           targetFunction: 'updateFeeCollector',
@@ -920,11 +930,11 @@ export const useLensAdCampaignMarketplace = () => {
 
   // Add new function for claiming balance through Lens
   const claimBalanceLens = async () => {
-    if (!activeLensAddress) throw new Error('No Lens address');
+    if (!profile?.address) throw new Error('No Lens address');
     if (!address) throw new Error('No wallet address');
     
     return writeLensTransaction({
-      address: activeLensAddress,
+      address: profile.address as `0x${string}`,
       abi: accountABI,
       functionName: 'executeTransaction',
       args: [
