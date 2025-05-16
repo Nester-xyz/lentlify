@@ -11,7 +11,7 @@ const SidebarLayout = () => {
   const { sidebarLeftIsVisible, sidebarRightIsVisible } = useSidebar();
 
   return (
-    <div className="flex h-screen w-screen relative bg-white dark:bg-gray-900">
+    <div className="flex h-screen w-screen relative bg-white dark:bg-gray-900 overflow-hidden">
       <div className="relative h-full bg-white dark:bg-gray-900">
         <aside
           className={`${
@@ -27,7 +27,7 @@ const SidebarLayout = () => {
         <div className="absolute top-0 right-0 h-full w-px bg-gray-300 dark:bg-gray-700 pointer-events-none" />
       </div>
 
-      <main className="w-full">
+      <main className="flex-1">
         <div className="flex-1 overflow-auto bg-white  dark:bg-gray-900 dark:text-white delay-100 flex p-4 h-full w-full">
           <div className="w-full">
             <Outlet />
@@ -36,9 +36,9 @@ const SidebarLayout = () => {
       </main>
 
       {sidebarRightIsVisible && (
-        <aside className="w-[26rem]  dark:bg-gray-800 text-gray-800 dark:text-white transition-all duration-300 ease-in-out flex flex-col relative">
+        <aside className="border-l border-gray-300 dark:border-gray-700 flex-none w-[20rem] dark:bg-gray-900 text-gray-800 dark:text-white transition-all duration-300 ease-in-out flex flex-col relative">
           {/* Right Sidebar Content */}
-          <div className="p-4">
+          <div className="p-2">
             <SidebarRight />
           </div>
         </aside>

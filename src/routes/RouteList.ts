@@ -46,6 +46,12 @@ export const RouteList = [
     exact: true,
   },
   {
+    pathName: "Wallet",
+    path: "/wallet",
+    location: lazy(async () => await import("../pages/wallet")),
+    exact: true,
+  },
+  {
     pathName: "Profile",
     path: "/profile",
     location: lazy(async () => await import("../pages/profile")),
