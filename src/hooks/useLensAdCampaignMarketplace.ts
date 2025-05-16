@@ -266,13 +266,13 @@ export const useLensAdCampaignMarketplace = () => {
     }
   };
 
-  // Function to get seller campaign groups
+  // Function to get seller campaign groups Owner
   const getSellerCampaignGroups = async (sellerAddress: `0x${string}`) => {
     try {
       const data = await publicClient!.readContract({
         ...lensAdCampaignConfig,
         functionName: 'getSellerGroups',
-        args: [sellerAddress],
+        args: [profile?.address],
       });
       return data;
     } catch (error) {

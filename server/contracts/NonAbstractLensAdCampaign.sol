@@ -683,6 +683,22 @@ abstract contract NonAbstractLensAdCampaignMarketplace is Ownable, ReentrancyGua
         return sellerCampaignGroups[_seller];
     }
 
+    /**
+     * @notice Get the total number of campaign groups created
+     * @return The current campaign group count (next group ID to be assigned - 1)
+     */
+    function getCampaignGroupCount() external view returns (uint256) {
+        return groupCounter - 1;
+    }
+
+    /**
+     * @notice Get the total number of ad campaigns created
+     * @return The current campaign ad count (next campaign ID to be assigned)
+     */
+    function getCampaignAdCount() external view returns (uint256) {
+        return campaignCounter;
+    }
+
     // ===== UTILITY FUNCTIONS =====
     
     /**

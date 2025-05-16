@@ -1,420 +1,337 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { useOutletContext } from "react-router-dom";
-import { IoCloudUploadOutline } from "react-icons/io5";
 import { storageClient } from "@/lib/lens";
 import { useLensAdCampaignMarketplace } from "@/hooks/useLensAdCampaignMarketplace";
-import acl from "@/lib/acl";
+import { UseAuth } from "@/context/auth/AuthContext";
+import { useAccount } from "wagmi";
+import { useBalance } from "wagmi";
+import type { Address } from "viem";
+import { useRef } from "react";
+import { FiExternalLink } from "react-icons/fi";
 
-interface Profile {
-  name: string;
-  address: string;
-  image?: string;
-  bio: string;
-  coverPicture?: string;
-  createdAt: string;
+// Define types for campaign group data
+interface CampaignGroupData {
+  id: number;
+  uri: string;
+  owner: string;
+  metadata?: {
+    name: string;
+    description: string;
+    coverPhoto?: string;
+    profilePhoto?: string;
+  };
+  campaigns: CampaignData[];
+}
+
+// Define the campaign data structure based on the contract
+interface CampaignData {
+  id: number;
+  postId: string;
+  sellerAddress: string;
+  amountPool: bigint;
+  rewardAmount: bigint;
+  actionType: number;
+  minFollowersRequired: number;
+  availableSlots: number;
+  claimedSlots: number;
+  adDisplayTimePeriod: {
+    startTime: bigint;
+    endTime: bigint;
+  };
+  groveContentURI: string;
+  contentHash: string;
+  status: number;
+  metadata?: {
+    title?: string;
+    description?: string;
+    image?: string;
+  };
+}
+
+// Define the campaign contract structure
+interface CampaignContract {
+  postId: string;
+  sellerAddress: string;
+  amountPool: bigint;
+  rewardAmount: bigint;
+  actionType: number;
+  minFollowersRequired: number;
+  availableSlots: number;
+  claimedSlots: number;
+  adDisplayTimePeriod: {
+    startTime: bigint;
+    endTime: bigint;
+  };
+  groveContentURI: string;
+  contentHash: string;
+  status: number;
+}
+
+// Define the campaign group structure from contract
+interface CampaignGroupContract {
+  groupURI: string;
+  owner: string;
+  postCampaignIds: bigint[];
 }
 
 const CreateCampaignGroup: React.FC = () => {
-  const profile = useOutletContext<Profile | null>();
+  const { profile } = UseAuth();
   const navigate = useNavigate();
-
-  // Form state
-  const [name, setName] = useState("");
-  const [description, setDescription] = useState("");
-  const [coverPhoto, setCoverPhoto] = useState<File | null>(null);
-  const [coverPhotoUrl, setCoverPhotoUrl] = useState<string | null>(null);
-  const [profilePhoto, setProfilePhoto] = useState<File | null>(null);
-  const [profilePhotoUrl, setProfilePhotoUrl] = useState<string | null>(null);
-
-  // Status and error state
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [contentHash, setContentHash] = useState<string>("");
-  const [groveUri, setGroveUri] = useState<string>("");
-  const [shouldExecuteContract, setShouldExecuteContract] = useState(false);
-
-  // Contract interaction hook
-  const {
-    createCampaignGroup,
-    isCreateGroupPending,
-    isCreateGroupConfirming,
-    isCreateGroupConfirmed,
-    createGroupHash,
+  const { address } = useAccount();
+  const { 
+    getSellerCampaignGroups, 
+    getCampaignGroup, 
+    getCampaign,
+    getGroupPosts,
+    CONTRACT_ADDRESS
   } = useLensAdCampaignMarketplace();
 
-  // Image preview handlers
-  useEffect(() => {
-    if (coverPhoto) {
-      const url = URL.createObjectURL(coverPhoto);
-      setCoverPhotoUrl(url);
-      return () => URL.revokeObjectURL(url);
-    } else {
-      setCoverPhotoUrl(null);
-    }
-  }, [coverPhoto]);
+  // State for campaign groups and loading status
+  const [campaignGroups, setCampaignGroups] = useState<CampaignGroupData[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  
+  // Refs to track loading and fetch timing
+  const initialLoadRef = useRef(true);
+  const lastFetchTimeRef = useRef<number>(0);
 
-  useEffect(() => {
-    if (profilePhoto) {
-      const url = URL.createObjectURL(profilePhoto);
-      setProfilePhotoUrl(url);
-      return () => URL.revokeObjectURL(url);
-    } else {
-      setProfilePhotoUrl(null);
-    }
-  }, [profilePhoto]);
+  if (!profile) {
+    return <div>Loading profile...</div>;
+  }
 
-  // When transaction is confirmed, navigate to details page
-  useEffect(() => {
-    if (isCreateGroupConfirmed) {
-      navigate(`/campaign/${contentHash}`, {
-        state: {
-          metaUri: groveUri,
-          payload: {
-            name,
-            description,
-            owner: profile?.address,
-            coverPhoto: coverPhotoUrl,
-            profilePhoto: profilePhotoUrl,
-          },
-        },
-      });
-    }
-  }, [
-    isCreateGroupConfirmed,
-    navigate,
-    contentHash,
-    groveUri,
-    name,
-    description,
-    profile,
-    coverPhotoUrl,
-    profilePhotoUrl,
-  ]);
-
-  // Effect to execute contract call when URI is ready
-  useEffect(() => {
-    const executeContractCall = async () => {
-      if (shouldExecuteContract && groveUri) {
+   // Fetch campaign groups for the seller (current user)
+    useEffect(() => {
+      // Skip if wallet address is not available
+      if (!address) {
+        console.log('Wallet address not available yet, skipping fetch');
+        return;
+      }
+  
+      console.log('Wallet connected:', address);
+      console.log('Contract address:', CONTRACT_ADDRESS);
+      
+      const fetchCampaignGroups = async () => {
         try {
-          console.log("Executing contract call with URI:", groveUri);
-          await createCampaignGroup(groveUri);
-          console.log("Campaign group creation initiated");
-          setShouldExecuteContract(false); // Reset flag after execution
+          // Show loading indicator only on first load
+          if (initialLoadRef.current) {
+            setIsLoading(true);
+          }
+          
+          // Get current time to check if we should fetch
+          const now = Date.now();
+          const timeSinceLastFetch = now - lastFetchTimeRef.current;
+          
+          // Only fetch if this is the first load or if enough time has passed
+          if (lastFetchTimeRef.current > 0 && timeSinceLastFetch < 30000) {
+            console.log(`Too soon to fetch again (${Math.round(timeSinceLastFetch/1000)}s since last fetch)`);
+            return;
+          }
+          
+          // Update last fetch time
+          lastFetchTimeRef.current = now;
+          console.log(`Fetching campaign groups for address: ${address}`);
+          
+          // Get all group IDs for the current user
+          const groupIds = await getSellerCampaignGroups(address as `0x${string}`) as unknown as bigint[];
+          console.log('Group IDs:', groupIds);
+          
+          if (!groupIds || groupIds.length === 0) {
+            console.log('No groups found for this user');
+            setCampaignGroups([]);
+            setIsLoading(false);
+            return;
+          }
+  
+          const groupsData: CampaignGroupData[] = [];
+  
+          // Fetch data for each group
+          for (const groupId of groupIds) {
+            console.log(`Fetching group ${Number(groupId)}`);
+            const groupData = await getCampaignGroup(Number(groupId)) as unknown as CampaignGroupContract;
+            
+            if (groupData) {
+              let metadata: any = {};
+              
+              // Fetch metadata from Grove storage if URI exists
+              if (groupData.groupURI) {
+                try {
+                  let fetchUrl = groupData.groupURI;
+                  
+                  // If it's a lens:// URL, use storageClient to resolve it
+                  if (fetchUrl.startsWith('lens://')) {
+                    const contentHash = fetchUrl.replace('lens://', '');
+                    console.log(`Resolving lens URI for group ${Number(groupId)}:`, contentHash);
+                    
+                    try {
+                      // Use storageClient to resolve the lens:// URI to an HTTPS URL
+                      fetchUrl = storageClient.resolve(fetchUrl);
+                      console.log(`Resolved lens URI to:`, fetchUrl);
+                    } catch (resolveErr) {
+                      console.error(`Error resolving lens URI for group ${Number(groupId)}:`, resolveErr);
+                      // Use placeholder metadata
+                      metadata = {
+                        name: `Campaign Group #${Number(groupId)}`,
+                        description: `Campaign group with content hash: ${contentHash.substring(0, 10)}...`,
+                      };
+                      // Skip fetch attempt
+                      throw new Error('Failed to resolve lens URI');
+                    }
+                  }
+                  
+                  // Fetch metadata from the resolved URL
+                  const metadataResponse = await fetch(fetchUrl);
+                  if (metadataResponse.ok) {
+                    metadata = await metadataResponse.json();
+                    console.log(`Fetched metadata for group ${Number(groupId)}:`, metadata);
+                  }
+                } catch (err) {
+                  console.error(`Error fetching metadata for group ${groupId}:`, err);
+                }
+              }
+  
+              // Get campaign IDs for this group
+              const campaignIds = await getGroupPosts(Number(groupId)) as unknown as bigint[];
+              console.log(`Group ${Number(groupId)} has ${campaignIds?.length || 0} campaigns`);
+              const campaigns: CampaignData[] = [];
+  
+              // Fetch data for each campaign
+              if (campaignIds && campaignIds.length > 0) {
+                for (const campaignId of campaignIds) {
+                  const campaignData = await getCampaign(Number(campaignId)) as unknown as CampaignContract;
+                  
+                  if (campaignData) {
+                    let campaignMetadata: any = {};
+                    
+                    // Fetch campaign metadata
+                    if (campaignData.groveContentURI) {
+                      try {
+                        const campaignMetadataResponse = await fetch(campaignData.groveContentURI);
+                        if (campaignMetadataResponse.ok) {
+                          campaignMetadata = await campaignMetadataResponse.json();
+                        }
+                      } catch (err) {
+                        console.error(`Error fetching metadata for campaign ${campaignId}:`, err);
+                      }
+                    }
+  
+                    campaigns.push({
+                      id: Number(campaignId),
+                      postId: campaignData.postId,
+                      sellerAddress: campaignData.sellerAddress,
+                      amountPool: campaignData.amountPool,
+                      rewardAmount: campaignData.rewardAmount,
+                      actionType: campaignData.actionType,
+                      minFollowersRequired: campaignData.minFollowersRequired,
+                      availableSlots: campaignData.availableSlots,
+                      claimedSlots: campaignData.claimedSlots,
+                      adDisplayTimePeriod: campaignData.adDisplayTimePeriod,
+                      groveContentURI: campaignData.groveContentURI,
+                      contentHash: campaignData.contentHash,
+                      status: campaignData.status,
+                      metadata: campaignMetadata
+                    });
+                  }
+                }
+              }
+  
+              groupsData.push({
+                id: Number(groupId),
+                uri: groupData.groupURI,
+                owner: groupData.owner,
+                metadata,
+                campaigns
+              });
+            }
+          }
+  
+          setCampaignGroups(groupsData);
+          console.log(`Fetch completed - found ${groupsData.length} groups with data`);
         } catch (err: any) {
-          console.error("Error during contract execution:", err);
-          setError(err.message || "Error creating campaign group");
-          setIsSubmitting(false);
-          setShouldExecuteContract(false); // Reset flag on error
+          console.error('Error fetching campaign groups:', err);
+          setError(err.message || 'Failed to load campaign groups');
+        } finally {
+          setIsLoading(false);
+          initialLoadRef.current = false; // Mark initial load as complete
         }
-      }
-    };
-
-    executeContractCall();
-  }, [shouldExecuteContract, groveUri, createCampaignGroup]);
-
-  // Add debug logging for contract interaction states
-  useEffect(() => {
-    console.log("Contract interaction state:", {
-      isPending: isCreateGroupPending,
-      isConfirming: isCreateGroupConfirming,
-      isConfirmed: isCreateGroupConfirmed,
-    });
-
-    // If transaction fails, show error
-    if (
-      !isCreateGroupConfirming &&
-      !isCreateGroupConfirmed &&
-      isCreateGroupPending === false
-    ) {
-      setError("Transaction failed. Please check console for details.");
-      setIsSubmitting(false);
-    }
-  }, [isCreateGroupPending, isCreateGroupConfirming, isCreateGroupConfirmed]);
-
-  // File input handlers
-  const handleCoverPhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      setCoverPhoto(e.target.files[0]);
-    }
-  };
-
-  const handleProfilePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      setProfilePhoto(e.target.files[0]);
-    }
-  };
-
-  const removeCoverPhoto = () => {
-    setCoverPhoto(null);
-  };
-
-  const removeProfilePhoto = () => {
-    setProfilePhoto(null);
-  };
-
-  // Two-step submission process:
-  // 1. Upload content to Grove storage
-  // 2. Create campaign group on-chain with the content URI
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError(null);
-
-    setIsSubmitting(true);
-
-    try {
-      // Step 1: Upload files and content to Grove storage
-      let coverUri: string | null = null;
-      if (coverPhoto) {
-        const fileRes = await storageClient.uploadFile(coverPhoto, { acl });
-        coverUri = fileRes.gatewayUrl;
-      }
-      console.log("Cover URI:", coverUri);
-
-      let profileUri: string | null = null;
-      if (profilePhoto) {
-        const profRes = await storageClient.uploadFile(profilePhoto, { acl });
-        profileUri = profRes.gatewayUrl;
-      }
-      console.log("Profile URI:", profileUri);
-
-      const payload = {
-        name,
-        description,
-        owner: profile?.address,
-        coverPhoto: coverUri,
-        profilePhoto: profileUri,
-        createdAt: new Date().toISOString(),
       };
-
-      const metaRes = await storageClient.uploadAsJson(payload, { acl });
-      console.log("Storage response:", metaRes);
-
-      const metaUri = metaRes.uri;
-      console.log("Meta URI:", metaUri);
-      const hash = metaUri.replace("lens://", "");
-      console.log("Meta hash:", hash);
-
-      // Step 2: Prepare for campaign group creation on-chain
-      // Save the content hash and Grove URI for use in the contract call
-      setContentHash(hash);
-      setGroveUri(metaUri);
-
-      // Set flag to trigger contract execution in the useEffect
-      setShouldExecuteContract(true);
-      console.log("Campaign group creation prepared with URI:", metaUri);
-    } catch (err: any) {
-      setError(err.message || "Error creating campaign group");
-      setIsSubmitting(false);
-    }
-  };
-
-  // Determine the button state/text based on the transaction state
-  const getButtonText = () => {
-    if (isSubmitting && !isCreateGroupPending) return "Uploading to Grove...";
-    if (isCreateGroupPending) return "Preparing transaction...";
-    if (isCreateGroupConfirming) return "Confirming transaction...";
-    return "Create Campaign Group";
-  };
-
-  const isButtonDisabled =
-    isSubmitting || isCreateGroupPending || isCreateGroupConfirming;
+  
+      // Fetch campaign groups immediately
+      fetchCampaignGroups();
+      
+      // Set up polling every 30 seconds
+      const pollingInterval = setInterval(() => {
+        console.log('30s interval triggered - fetching campaign updates');
+        fetchCampaignGroups();
+      }, 30000); // 30 seconds in milliseconds
+      
+      // Clean up interval on component unmount
+      return () => {
+        console.log('Cleaning up polling interval');
+        clearInterval(pollingInterval);
+      };
+    }, [address, getCampaignGroup, getSellerCampaignGroups, getGroupPosts, getCampaign, CONTRACT_ADDRESS]);
 
   return (
     <div className="max-w-xl mx-auto py-8">
-      <div className="bg-white rounded-xl shadow-sm p-4 mb-6 border border-gray-300">
-        <h1 className="text-2xl font-bold mb-6">Create Campaign Group</h1>
-        <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Campaign Name */}
-          <div className="space-y-1">
-            <label className="block text-sm font-medium text-gray-700">
-              Campaign Group Name
-            </label>
-            <div className="flex items-center bg-gray-100 rounded-lg p-2 px-3 border-2 border-transparent focus-within:border-teal-400 transition-colors duration-200">
-              <input
-                type="text"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                className="flex-1 bg-transparent border-none outline-none text-gray-700 text-sm placeholder-gray-400"
-                placeholder="Enter campaign group name"
-                required
-                disabled={isButtonDisabled}
-              />
-            </div>
-          </div>
-
-          {/* Description */}
-          <div className="space-y-1">
-            <label className="block text-sm font-medium text-gray-700">
-              Description
-            </label>
-            <div className="flex items-center bg-gray-100 rounded-lg p-2 px-3 border-2 border-transparent focus-within:border-teal-400 transition-colors duration-200">
-              <textarea
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                className="flex-1 bg-transparent border-none outline-none text-gray-700 text-sm placeholder-gray-400"
-                placeholder="Enter description"
-                rows={4}
-                required
-                disabled={isButtonDisabled}
-              />
-            </div>
-          </div>
-
-          {/* Profile Photo */}
-          <div className="space-y-1">
-            <label className="block text-sm font-medium text-gray-700">
-              Profile Photo
-            </label>
-            {profilePhotoUrl ? (
-              <div className="relative w-24 h-24">
-                <div className="rounded-full overflow-hidden border border-gray-300 w-full h-full">
-                  <img
-                    src={profilePhotoUrl}
-                    alt="Profile preview"
-                    className="w-full h-full object-cover"
-                  />
-                </div>
-                <button
-                  type="button"
-                  onClick={removeProfilePhoto}
-                  className="absolute top-1 right-1 bg-white rounded-full p-1 shadow hover:bg-gray-100 cursor-pointer"
-                  disabled={isButtonDisabled}
-                >
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    className="h-4 w-4 text-gray-600"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
+      {/* Campaign groups list */}
+              <div className="text-2xl font-bold mb-6 text-slate-500">ALL CAMPAIGNS</div>
+              <div className="space-y-8">
+                {campaignGroups.map((group) => (
+                  <div 
+                    key={group.id} 
+                    className="bg-gray-800 rounded-lg overflow-hidden border border-gray-700 hover:border-blue-500 transition cursor-pointer"
+                    onClick={() => navigate(`/campaign-group/${group.id}`)}
                   >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M6 18L18 6M6 6l12 12"
-                    />
-                  </svg>
-                </button>
+                    {/* Cover photo */}
+                    <div className="h-48 bg-gray-700 relative">
+                      {group.metadata?.coverPhoto ? (
+                        <img 
+                          src={group.metadata.coverPhoto} 
+                          alt="Cover" 
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <div className="w-full h-full bg-gradient-to-r from-blue-900 to-purple-900"></div>
+                      )}
+                    </div>
+                    
+                    {/* Profile section */}
+                    <div className="px-6 pt-4 pb-6 relative">
+                      {/* Profile photo */}
+                      <div className="absolute -top-16 left-6 w-32 h-32 rounded-full border-4 border-gray-800 overflow-hidden bg-gray-700">
+                        {group.metadata?.profilePhoto ? (
+                          <img 
+                            src={group.metadata.profilePhoto} 
+                            alt="Profile" 
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <div className="w-full h-full bg-gradient-to-r from-blue-500 to-purple-500"></div>
+                        )}
+                      </div>
+                      
+                      {/* Group info */}
+                      <div className="ml-40">
+                        <h2 className="text-xl font-bold text-white">{group.metadata?.name || `Campaign Group #${group.id}`}</h2>
+                        <p className="text-gray-400 text-sm mb-2 truncate">{group.owner}</p>
+                        <p className="text-gray-300 mb-4">{group.metadata?.description || 'No description available'}</p>
+                        
+                        {/* Stats */}
+                        <div className="flex items-center text-sm text-gray-400 mt-4">
+                          <div className="flex items-center mr-6">
+                            <span className="font-medium">{group.campaigns.length}</span>
+                            <span className="ml-1">campaigns</span>
+                          </div>
+                          <div className="flex items-center">
+                            <FiExternalLink className="mr-1" />
+                            <span>View details</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
               </div>
-            ) : (
-              <>
-                <label
-                  htmlFor="profilePhotoUpload"
-                  className={`relative flex items-center justify-center w-24 h-24 bg-gray-100 rounded-full border-2 border-dashed border-gray-300 hover:border-teal-400 transition-colors duration-200 ${
-                    isButtonDisabled
-                      ? "opacity-50 cursor-not-allowed"
-                      : "cursor-pointer"
-                  }`}
-                >
-                  <IoCloudUploadOutline className="h-6 w-6 text-gray-500" />
-                </label>
-                <input
-                  id="profilePhotoUpload"
-                  type="file"
-                  accept="image/*"
-                  onChange={handleProfilePhotoChange}
-                  className="hidden"
-                  disabled={isButtonDisabled}
-                />
-              </>
-            )}
-          </div>
-
-          {/* Cover Photo */}
-          <div className="space-y-1">
-            <label className="block text-sm font-medium text-gray-700">
-              Cover Photo
-            </label>
-            {coverPhotoUrl ? (
-              <div className="relative border border-gray-300 rounded-lg w-full h-36 overflow-hidden">
-                <img
-                  src={coverPhotoUrl}
-                  alt="Cover preview"
-                  className="w-full h-full object-cover"
-                />
-                <button
-                  type="button"
-                  onClick={removeCoverPhoto}
-                  className="absolute top-2 right-2 bg-white cursor-pointer rounded-full p-1 shadow hover:bg-gray-100"
-                  disabled={isButtonDisabled}
-                >
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    className="h-4 w-4 text-gray-600"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M6 18L18 6M6 6l12 12"
-                    />
-                  </svg>
-                </button>
-              </div>
-            ) : (
-              <>
-                <label
-                  htmlFor="coverPhotoUpload"
-                  className={`relative flex flex-col items-center justify-center w-full h-36 bg-gray-100 rounded-lg border-2 border-dashed border-gray-300 hover:border-teal-400 transition-colors duration-200 ${
-                    isButtonDisabled
-                      ? "opacity-50 cursor-not-allowed"
-                      : "cursor-pointer"
-                  }`}
-                >
-                  <IoCloudUploadOutline className="h-8 w-8 text-gray-500" />
-                  <span className="text-sm text-gray-500 mt-2">
-                    Click to upload
-                  </span>
-                </label>
-                <input
-                  id="coverPhotoUpload"
-                  type="file"
-                  accept="image/*"
-                  onChange={handleCoverPhotoChange}
-                  className="hidden"
-                  disabled={isButtonDisabled}
-                />
-              </>
-            )}
-          </div>
-
-          {error && (
-            <div className="text-red-500 text-sm bg-red-50 p-3 rounded-lg border border-red-200">
-              {error}
-            </div>
-          )}
-
-          {createGroupHash && !isCreateGroupConfirmed && (
-            <div className="text-blue-500 text-sm bg-blue-50 p-3 rounded-lg border border-blue-200">
-              Transaction submitted! Waiting for confirmation...
-              <a
-                href={`https://testnet.lensscan.io/tx/${createGroupHash}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-blue-600 hover:underline block mt-1"
-              >
-                View on explorer
-              </a>
-            </div>
-          )}
-
-          <button
-            type="submit"
-            disabled={isButtonDisabled}
-            className={`w-full py-2 rounded-full transition ${
-              isButtonDisabled
-                ? "bg-blue-300 cursor-not-allowed"
-                : "bg-blue-600 hover:bg-blue-500 text-white"
-            }`}
-          >
-            {getButtonText()}
-          </button>
-        </form>
-      </div>
     </div>
   );
 };
