@@ -11,16 +11,21 @@ const SidebarLayout = () => {
   const { sidebarLeftIsVisible, sidebarRightIsVisible } = useSidebar();
 
   return (
-    <div className="flex h-screen w-screen overflow-hidden relative bg-white">
-      <aside
-        className={`${
-          sidebarLeftIsVisible ? "w-64" : "w-16"
-        }  bg-gray-100 text-gray-800 transition-all duration-300 ease-in-out flex flex-col relative`}
-      >
-        <LogoHeader />
-        <SidebarNavigtion />
-        <SidebarFooter />
-      </aside>
+    <div className="flex h-screen w-screen relative bg-white dark:bg-gray-900">
+      <div className="relative h-full bg-white dark:bg-gray-900">
+        <aside
+          className={`${
+            sidebarLeftIsVisible ? "w-60" : "w-16"
+          } bg-gray-100 dark:bg-gray-900 text-gray-800 dark:text-gray-200 transition-all duration-300 ease-in-out flex flex-col h-full`}
+          style={{ zIndex: 10 }}
+        >
+          <LogoHeader />
+          <SidebarNavigtion />
+          <SidebarFooter />
+        </aside>
+        {/* Border as a separate absolutely positioned element */}
+        <div className="absolute top-0 right-0 h-full w-px bg-gray-300 dark:bg-gray-700 pointer-events-none" />
+      </div>
 
       <main className="w-full">
         <div className="flex-1 overflow-auto bg-white  dark:bg-gray-900 dark:text-white delay-100 flex p-4 h-full w-full">

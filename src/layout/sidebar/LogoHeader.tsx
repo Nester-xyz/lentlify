@@ -11,21 +11,29 @@ const LogoHeader = () => {
   const [projectName] = useState("Lentlify");
 
   return (
-    <div className="flex items-center justify-between p-4 border-b border-gray-700">
+    <div className="p-2 border-b dark:border-gray-700 border-gray-300 bg-white dark:bg-gray-900 flex items-center relative">
       {sidebarLeftIsVisible && (
-        <h1 className="text-xl font-bold">{projectName}</h1>
+        <h1 className="font-bold text-2xl text-gray-700 dark:text-gray-200 ml-2 select-none">
+          {projectName}
+        </h1>
       )}
+      <div className="flex-1" />
       <Button
-        onClick={() => toggleSidebarLeft()}
-        className="text-gray-500 dark:text-gray-400 hover:text-gray-700  rounded-full p-4 "
+        onClick={toggleSidebarLeft}
+        className="w-12 h-12 flex items-center justify-center rounded-full focus:outline-none transition-colors text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-700"
+        aria-label={
+          sidebarLeftIsVisible ? "Collapse sidebar" : "Expand sidebar"
+        }
       >
-        <>
-          {!sidebarLeftIsVisible ? (
-            <TbLayoutSidebarLeftExpand className="w-6 h-6 text-5xl" />
+        <span
+          className={`transition-transform duration-300 ease-in-out inline-block scale-150`}
+        >
+          {sidebarLeftIsVisible ? (
+            <TbLayoutSidebarRightExpand />
           ) : (
-            <TbLayoutSidebarRightExpand className="w-6 h-6 text-2xl" />
+            <TbLayoutSidebarLeftExpand />
           )}
-        </>
+        </span>
       </Button>
     </div>
   );
