@@ -1,13 +1,27 @@
-import React from "react";
-import { useBalance, useAccount } from "wagmi";
+import React, { useState, useEffect } from "react";
+import { useBalance } from "wagmi";
 import type { Address } from "viem";
 import grassTokenLogo from "../../assets/GRASS_TOKEN_LOGO.png";
+import { UseAuth } from "@/context/auth/AuthContext";
 
 const WalletPage: React.FC = () => {
-  const { address } = useAccount();
-  const { data: balanceData } = useBalance({
-    address: address as Address,
+  const { selectedAccount } = UseAuth();
+  const [smartAccountAddress, setSmartAccountAddress] = useState<
+    string | undefined
+  >(() => {
+    const savedAddress = localStorage.getItem("smartAccountAddress");
+    return savedAddress || selectedAccount?.address;
   });
+
+  const { data: balanceData } = useBalance({
+    address: smartAccountAddress as Address,
+  });
+
+  useEffect(() => {
+    if (!selectedAccount?.address) return;
+    setSmartAccountAddress(selectedAccount.address);
+    localStorage.setItem("smartAccountAddress", selectedAccount.address);
+  }, [selectedAccount]);
 
   return (
     <div className="wallet-page max-w-md mx-auto p-8 bg-white dark:bg-gray-900 min-h-screen">
@@ -31,7 +45,7 @@ const WalletPage: React.FC = () => {
         <div className="mb-5">
           <strong className="text-gray-700 dark:text-gray-300">Address:</strong>
           <div className="font-mono text-sm text-gray-900 dark:text-gray-100 break-all">
-            {address}
+            {smartAccountAddress || "Not connected"}
           </div>
         </div>
         <div className="flex gap-3">

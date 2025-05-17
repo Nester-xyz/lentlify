@@ -37,9 +37,6 @@ export default function WalletSelector() {
   //for testnet accounts
   const TESTNET_APP = "0xC75A89145d765c396fd75CbD16380Eb184Bd2ca7";
 
-  //for mainnet accounts
-  // const MAINNET_APP = "0x8A5Cc31180c37078e1EbA2A23c861Acf351a97cE";
-
   useEffect(() => {
     const fetchAccounts = async () => {
       if (address) {
@@ -53,6 +50,7 @@ export default function WalletSelector() {
           });
           if (result.isOk()) {
             const items = result.value.items;
+            console.log(items);
             setAccounts(
               items.map((item: any) => ({
                 ...item.account,

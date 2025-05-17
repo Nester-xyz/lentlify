@@ -13,7 +13,7 @@ const SidebarNavigation = () => {
   return (
     <nav
       className={`flex-1 overflow-y-auto p-2 transition-all duration-300 ${
-        sidebarLeftIsVisible ? "w-60" : "w-20"
+        sidebarLeftIsVisible ? "w-60" : "w-16"
       } bg-white dark:bg-gray-900`}
     >
       <ul className="space-y-2 w-full">

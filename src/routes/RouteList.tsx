@@ -1,9 +1,10 @@
 import { lazy, type JSX, type LazyExoticComponent } from "react";
+import React from "react";
 
 type RouteItem = {
   pathName: string;
   path: string;
-  location: LazyExoticComponent<() => JSX.Element>;
+  location: LazyExoticComponent<React.FC>;
   exact?: boolean;
 };
 
