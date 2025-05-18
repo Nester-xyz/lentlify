@@ -4,6 +4,7 @@ import { SidebarContext } from "./SidebarContext";
 type State = {
   left: boolean;
   right: boolean;
+  isMobile: boolean;
 };
 
 type Action =
@@ -11,11 +12,13 @@ type Action =
   | { type: "CLOSE_LEFT" }
   | { type: "OPEN_RIGHT" }
   | { type: "CLOSE_RIGHT" }
+  | { type: "IS_MOBILE" }
   | { type: "INIT"; payload: State };
 
 const initialState: State = {
-  left: false,
-  right: false,
+  left: localStorage.getItem("sidebarLeft") === "true",
+  right: localStorage.getItem("sidebarRight") === "true",
+  isMobile: false,
 };
 
 const reducers = (state: State, action: Action) => {
@@ -28,6 +31,8 @@ const reducers = (state: State, action: Action) => {
       return { ...state, left: !state.left };
     case "CLOSE_RIGHT":
       return { ...state, right: false };
+    case "IS_MOBILE":
+      return { ...state, isMobile: !state.isMobile };
     case "INIT":
       return action.payload;
     default:
@@ -46,7 +51,8 @@ export const SidebarProvider: FC<SidebarProviderProps> = ({ children }) => {
   useEffect(() => {
     const left = localStorage.getItem("sidebarLeft") === "true";
     const right = localStorage.getItem("sidebarRight") === "true";
-    dispatch({ type: "INIT", payload: { left, right } });
+    const isMobile = window.innerWidth <= 768;
+    dispatch({ type: "INIT", payload: { left, right, isMobile } });
   }, []);
 
   // Sync to localStorage when state changes
@@ -54,6 +60,28 @@ export const SidebarProvider: FC<SidebarProviderProps> = ({ children }) => {
     localStorage.setItem("sidebarLeft", String(state.left));
     localStorage.setItem("sidebarRight", String(state.right));
   }, [state]);
+
+  useEffect(() => {
+    const mediaQuery = window.matchMedia("(max-width: 768px)");
+
+    const updateMobileStatus = (e: MediaQueryList | MediaQueryListEvent) => {
+      const isMobile = e.matches;
+      dispatch({ type: "IS_MOBILE" });
+
+      if (isMobile) {
+        dispatch({ type: "CLOSE_RIGHT" });
+      }
+    };
+
+    // Initial check
+    updateMobileStatus(mediaQuery);
+
+    mediaQuery.addEventListener("change", updateMobileStatus);
+
+    return () => {
+      mediaQuery.removeEventListener("change", updateMobileStatus);
+    };
+  }, []);
 
   const value = useMemo(
     () => ({
@@ -63,6 +91,7 @@ export const SidebarProvider: FC<SidebarProviderProps> = ({ children }) => {
       openSidebarRight: () => dispatch({ type: "OPEN_RIGHT" }),
       closeSidebarLeft: () => dispatch({ type: "CLOSE_LEFT" }),
       closeSidebarRight: () => dispatch({ type: "CLOSE_RIGHT" }),
+      isMobile: state.isMobile,
     }),
     [state]
   );

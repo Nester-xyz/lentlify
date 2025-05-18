@@ -1,3 +1,14 @@
+import type { TProfile } from "./User";
+
+export interface CampaignContextType {
+  campaignGroups: CampaignGroupData[];
+  isLoading: boolean;
+  error: string | null;
+  fetchCampaignGroups: () => Promise<void>;
+  lastFetchTime: number | null;
+  profiles: Record<string, TProfile | null>;
+}
+
 export interface CampaignGroupData {
   id: number;
   uri: string;

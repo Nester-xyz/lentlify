@@ -125,13 +125,6 @@ const OwnerProfile: React.FC<OwnerProfileProps> = ({ address }) => {
     };
   }, [address]);
 
-  if (loading) {
-    return (
-      <p className="text-gray-400 text-sm mb-2 truncate animate-pulse">
-        Loading...
-      </p>
-    );
-  }
   if (profile) {
     return (
       <div className="flex items-center gap-2 text-gray-400 text-sm mb-2 truncate">
@@ -391,7 +384,7 @@ const CampaignGroupDetail: React.FC = () => {
   return (
     <div className="mx-auto">
       {/* Sticky Header */}
-      <div className="sticky top-0 z-10 bg-gray-900">
+      <div className="sticky top-0 z-10">
         <div className="flex justify-between items-center">
           <h1 className="p-4 text-2xl font-bold text-white">
             Campaign Group Details
