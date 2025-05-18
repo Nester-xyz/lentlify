@@ -301,24 +301,6 @@ export const abi = [
         "type": "uint256"
       },
       {
-        "indexed": false,
-        "internalType": "string",
-        "name": "contentHashSubmitted",
-        "type": "string"
-      },
-      {
-        "indexed": false,
-        "internalType": "string",
-        "name": "postString",
-        "type": "string"
-      },
-      {
-        "indexed": true,
-        "internalType": "uint256",
-        "name": "postId",
-        "type": "uint256"
-      },
-      {
         "indexed": true,
         "internalType": "address",
         "name": "influencer",
@@ -454,11 +436,6 @@ export const abi = [
         "internalType": "bool",
         "name": "paid",
         "type": "bool"
-      },
-      {
-        "internalType": "string",
-        "name": "postString",
-        "type": "string"
       }
     ],
     "stateMutability": "view",
@@ -860,45 +837,6 @@ export const abi = [
       }
     ],
     "name": "execute",
-    "outputs": [
-      {
-        "internalType": "bytes",
-        "name": "",
-        "type": "bytes"
-      }
-    ],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "address",
-        "name": "feed",
-        "type": "address"
-      },
-      {
-        "internalType": "enum ActionType",
-        "name": "actionType",
-        "type": "uint8"
-      },
-      {
-        "internalType": "string",
-        "name": "contentHash",
-        "type": "string"
-      },
-      {
-        "internalType": "uint256",
-        "name": "campaignId",
-        "type": "uint256"
-      },
-      {
-        "internalType": "string",
-        "name": "postString",
-        "type": "string"
-      }
-    ],
-    "name": "executeDirectAction",
     "outputs": [
       {
         "internalType": "bytes",

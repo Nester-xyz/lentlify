@@ -49,60 +49,50 @@ export const CampaignProvider: React.FC<{ children: React.ReactNode }> = ({
   const lastFetchTimeRef = useRef<number | null>(null);
   const initialLoadRef = useRef(true);
 
-  // Add a fetching flag to prevent multiple simultaneous fetches
-  const isFetchingRef = useRef(false);
-  
   const fetchCampaignGroups = useCallback(async () => {
-    // Skip if already fetching
-    if (isFetchingRef.current) {
+    if (!address) {
+      console.log(
+        "CampaignContext: Wallet address not available yet, skipping fetch"
+      );
+      if (initialLoadRef.current) setIsLoading(false);
       return;
     }
-    
-    // Skip if no wallet address or profile
-    if (!address || !profile) {
+    if (!profile) {
+      console.log("CampaignContext: Profile not available, skipping fetch");
       if (initialLoadRef.current) setIsLoading(false);
       return;
     }
 
-    // Only log wallet and contract info on initial load
-    if (initialLoadRef.current) {
-      console.log("CampaignContext: Initial load with wallet", address.slice(0, 6) + "...");
-    }
+    console.log("CampaignContext: Wallet connected:", address);
+    console.log("CampaignContext: Contract address:", CONTRACT_ADDRESS);
 
     const now = Date.now();
-    // Throttle fetches to prevent spamming
     if (
       lastFetchTimeRef.current &&
-      now - lastFetchTimeRef.current < 60000 && // Increased to 60 seconds
+      now - lastFetchTimeRef.current < 30000 &&
       !initialLoadRef.current
     ) {
-      // No need to log this every time
+      console.log(
+        `CampaignContext: Too soon to fetch again (${Math.round(
+          (now - (lastFetchTimeRef.current || 0)) / 1000
+        )}s since last fetch)`
+      );
       if (campaignGroups.length > 0) {
         setIsLoading(false);
       }
       return;
     }
 
-    // Set fetching flag to true
-    isFetchingRef.current = true;
     setIsLoading(true);
 
     try {
       const totalGroups = await getCampaignGroupCount();
-      
-      // Only log on initial load or when the count changes
-      if (initialLoadRef.current) {
-        console.log(`CampaignContext: Total campaign groups: ${totalGroups}`);
-      }
+      console.log(`CampaignContext: Total campaign groups: ${totalGroups}`);
 
       if (!totalGroups || Number(totalGroups) === 0) {
-        // Only log on initial load
-        if (initialLoadRef.current) {
-          console.log("CampaignContext: No campaign groups found");
-        }
+        console.log("CampaignContext: No campaign groups found");
         setCampaignGroups([]);
         setError(null);
-        isFetchingRef.current = false; // Reset fetching flag
         return;
       }
 
@@ -112,10 +102,9 @@ export const CampaignProvider: React.FC<{ children: React.ReactNode }> = ({
         groupIds.push(i);
       }
 
-      // Only log on initial load
-      if (initialLoadRef.current) {
-        console.log(`CampaignContext: Fetching ${groupIds.length} campaign groups`);
-      }
+      console.log(
+        `CampaignContext: Fetching ${groupIds.length} campaign groups`
+      );
       const groupsData: CampaignGroupData[] = [];
 
       for (const groupId of groupIds) {
@@ -218,17 +207,13 @@ export const CampaignProvider: React.FC<{ children: React.ReactNode }> = ({
       setError(null);
       lastFetchTimeRef.current = Date.now();
       initialLoadRef.current = false;
-      
-      // Only log completion on initial load
-      if (initialLoadRef.current) {
-        console.log(`CampaignContext: Fetch completed - found ${groupsData.length} groups with data`);
-      }
+      console.log(
+        `CampaignContext: Fetch completed - found ${groupsData.length} groups with data`
+      );
     } catch (err: any) {
       console.error("CampaignContext: Error fetching campaign groups:", err);
       setError(err.message || "Failed to load campaign groups");
     } finally {
-      // Always reset the fetching flag and loading state
-      isFetchingRef.current = false;
       setIsLoading(false);
     }
   }, [
@@ -243,19 +228,13 @@ export const CampaignProvider: React.FC<{ children: React.ReactNode }> = ({
   ]);
 
   useEffect(() => {
-    // Only fetch on initial load or when dependencies change
     if (initialLoadRef.current || !lastFetchTimeRef.current) {
       fetchCampaignGroups();
     }
-    
-    // Set up polling with a longer interval to reduce spamming
     const pollingInterval = setInterval(() => {
-      // Only log once per minute instead of every poll
-      if (Date.now() % 60000 < 30000) {
-        console.log("CampaignContext: Polling for campaign updates");
-      }
+      console.log("CampaignContext: Polling for campaign updates");
       fetchCampaignGroups();
-    }, 60000); // Increased from 30s to 60s
+    }, 30000);
 
     return () => {
       clearInterval(pollingInterval);
