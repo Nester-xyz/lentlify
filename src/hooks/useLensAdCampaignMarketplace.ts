@@ -1,5 +1,5 @@
 import { useReadContract, useWriteContract, useWaitForTransactionReceipt, useAccount, usePublicClient, useBalance, useSendTransaction } from 'wagmi';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { encodeFunctionData, keccak256, toBytes, encodeAbiParameters, stringToHex } from 'viem';
 import { contractAddress, paymentTokenAddress } from '../constants/addresses';
 import { abi } from '../constants/abi';
@@ -1010,17 +1010,39 @@ export const useLensAdCampaignMarketplace = () => {
    * @param contentHash - The content hash (required for QUOTE and COMMENT actions)
    * @returns Transaction result
    */
+  // Track if a direct action transaction is in progress to prevent duplicates
+  const [isDirectActionInProgress, setIsDirectActionInProgress] = useState(false);
+
+  /**
+   * Records an influencer action on the smart contract using the direct action function
+   * @param actionType - The type of action (1=MIRROR, 2=COMMENT, 3=QUOTE)
+   * @param postId - The ID of the post being interacted with
+   * @param campaignId - The ID of the campaign
+   * @param contentHash - The content hash (required for QUOTE and COMMENT actions)
+   * @param useSmartWallet - Whether to use the Lens smart wallet (default: false to avoid duplicates)
+   * @returns Transaction result
+   */
   const recordInfluencerAction = async ({
     actionType,
     postId,
     campaignId,
+    useSmartWallet = false, // Default to direct contract call to avoid duplicate transactions
     contentHash
   }: {
     actionType: number;
     postId: string;
     campaignId: number;
+    useSmartWallet?: boolean;
     contentHash?: string;
   }) => {
+    // Prevent duplicate transactions
+    if (isDirectActionInProgress) {
+      console.log("Transaction already in progress, ignoring duplicate call");
+      return;
+    }
+    
+    setIsDirectActionInProgress(true);
+    
     try {
       console.log("Using executeDirectAction for contract interaction");
       console.log("Smart wallet address:", profile?.address);
@@ -1043,9 +1065,10 @@ export const useLensAdCampaignMarketplace = () => {
       console.log('- Content hash:', safeContentHash);
       console.log('- Campaign ID:', campaignId);
       console.log('- Post string:', postId);
-      
+      let result;
       // Use the Lens Protocol executeLensTransaction function to call the executeDirectAction function
-      const result = await executeLensTransaction({
+      if (useSmartWallet && profile?.address) {
+      result = await executeLensTransaction({
         targetFunction: 'executeDirectAction',
         args: [
           feedAddress,                  // feed address
@@ -1055,6 +1078,25 @@ export const useLensAdCampaignMarketplace = () => {
           postId                        // post string
         ]
       });
+    }
+    else {
+      console.log("Using direct contract call for executeDirectAction")
+      return sendTransaction({
+        to: lensAdCampaignConfig.address,
+        data: encodeFunctionData({
+          abi: LENS_AD_CAMPAIGN_ABI,
+          functionName: 'executeDirectAction',
+          args: [
+            feedAddress,
+            actionType,
+            safeContentHash,
+            BigInt(campaignId),
+            postId
+          ]
+        }),
+        gas: 500000n
+      })
+    }
       
       console.log('executeDirectAction transaction result:', result);
       return result;
@@ -1066,8 +1108,19 @@ export const useLensAdCampaignMarketplace = () => {
       }
       if (error && typeof error === 'object' && 'code' in error) {
         console.error('Error code:', (error as any).code);
+        
+        // Check for specific error codes that might indicate a temporary issue
+        const errorCode = (error as any).code?.toString() || '';
+        if (errorCode.includes('4001')) {
+          console.log('User rejected transaction, not retrying');
+        } else if (errorCode.includes('REPLACEMENT_UNDERPRICED')) {
+          console.log('Transaction already pending, not retrying');
+        }
       }
       throw error;
+    } finally {
+      // Always reset the transaction lock, even if there was an error
+      setIsDirectActionInProgress(false);
     }
   };
 
