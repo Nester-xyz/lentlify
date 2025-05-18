@@ -370,12 +370,11 @@ const Home = () => {
   }, [getCampaignAdCount, getCampaignInfo, CONTRACT_ADDRESS]);
 
   useEffect(() => {
-    console.log(
-      "Opening right sidebar",
+    console.table({
+      string: "Table",
       isMobile,
       sidebarRightIsVisible,
-      localStorage.getItem("sidebarRight")
-    );
+    });
 
     if (isMobile && sidebarRightIsVisible) {
       closeSidebarRight();
