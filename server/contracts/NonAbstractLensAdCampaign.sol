@@ -18,6 +18,11 @@ interface IGraphContract {
  * @dev A non-abstract marketplace for ad campaigns on Lens Protocol
  */
 abstract contract NonAbstractLensAdCampaignMarketplace is Ownable, ReentrancyGuard, BaseAction {
+    // Precomputed parameter key hashes for Lens Protocol actions
+    /// @custom:keccak lens.param.actionType
+    bytes32 constant PARAM__ACTION_TYPE = 0x76bdfe37bb25407dd7c85422aa8c88fc4fe4947dbe72fa560dfbafea54cabf31;
+    /// @custom:keccak lens.param.contentHash
+    bytes32 constant PARAM__CONTENT_HASH = 0x41632c80ef313ad4b21fec779c2b58ac905e12a33474c01a7c88015aa70e0d83;
     // Token used for payments (GRASS)
     IERC20 public paymentToken;
     
@@ -61,7 +66,7 @@ abstract contract NonAbstractLensAdCampaignMarketplace is Ownable, ReentrancyGua
     event CampaignSlotsUpdated(uint256 indexed campaignId, uint256 likeSlotsAdded, uint256 commentSlotsAdded, uint256 quoteSlotsAdded);
     event CampaignPricesUpdated(uint256 indexed campaignId, uint256 price);
     event CampaignTimeExtended(uint256 indexed campaignId, uint256 newEndTime, uint256 additionalFee);
-    event InfluencerParticipated(uint256 indexed campaignId, address indexed influencer, ActionType actionType);
+    event InfluencerParticipated(uint256 indexed campaignId, string contentHashSubmitted, string postString, uint256 indexed postId, address indexed influencer, ActionType actionType);
     event RewardPaid(uint256 indexed campaignId, address indexed influencer, uint256 amount);
     event DepositsRefunded(uint256 indexed campaignId, address indexed seller, uint256 amount);
     event DisplayFeeRefunded(uint256 indexed campaignId, address indexed seller, uint256 amount);
@@ -162,24 +167,33 @@ abstract contract NonAbstractLensAdCampaignMarketplace is Ownable, ReentrancyGua
 
     // Implementation of the execute method
     function _execute(address originalMsgSender, address feed, uint256 postId, KeyValue[] calldata params) internal returns (bytes memory) {
-        // Decode actionType and contentHash from params
+        // Decode actionType, contentHash, campaignId, and postString from params
         ActionType actionType = ActionType.NONE;
         string memory contentHashSubmitted = "";
+        string memory postString = "";
         bool actionTypeFound = false;
+        uint256 campaignId = postId; // Default to postId if campaignId not provided
         
-        // Parse parameters from the Lens Protocol action
+        // Parse parameters from the Lens Protocol action using predefined constants
         for (uint256 i = 0; i < params.length; i++) {
             // Look for actionType parameter
-            if (params[i].key == keccak256("lens.param.actionType")) {
+            if (params[i].key == PARAM__ACTION_TYPE) {
                 actionTypeFound = true;
                 actionType = ActionType(uint8(abi.decode(params[i].value, (uint8))));
             } 
             // Look for contentHash parameter (for quote posts)
-            else if (params[i].key == keccak256("lens.param.contentHash")) {
+            else if (params[i].key == PARAM__CONTENT_HASH) {
                 contentHashSubmitted = abi.decode(params[i].value, (string));
             }
+            // Look for campaignId parameter
+            else if (params[i].key == keccak256("lens.param.campaignId")) {
+                campaignId = abi.decode(params[i].value, (uint256));
+            }
+            // Look for postString parameter
+            else if (params[i].key == keccak256("lens.param.postString")) {
+                postString = abi.decode(params[i].value, (string));
+            }
         }
-        
         // Require that we found an action type
         require(actionTypeFound, "Action type not found in params");
         
@@ -217,7 +231,8 @@ abstract contract NonAbstractLensAdCampaignMarketplace is Ownable, ReentrancyGua
             influencerAddress: originalMsgSender,
             action: actionType,
             timestamp: block.timestamp,
-            paid: false
+            paid: false,
+            postString: postString
         }));
         hasPerformedAction[postId][originalMsgSender][actionType] = true;
         
@@ -226,13 +241,82 @@ abstract contract NonAbstractLensAdCampaignMarketplace is Ownable, ReentrancyGua
         
         // Deduct a slot
         campaign.claimedSlots++;
-        
-        emit InfluencerParticipated(postId, originalMsgSender, actionType);
+
+        // Only emit an event with the parsed data for debugging
+        emit InfluencerParticipated(campaignId, contentHashSubmitted, postString, postId, originalMsgSender, actionType);
         
         // Return the action type as bytes for the ActionHub
         return abi.encode(actionType);
     }
 
+    /**
+     * @dev Direct interface for campaign participation without KeyValue parsing
+     * @param feed Address of the Lens Protocol feed
+     * @param actionType Type of action (MIRROR, COMMENT, or QUOTE)
+     * @param contentHash Content hash for verification (required for QUOTE actions)
+     * @param campaignId Campaign ID (defaults to postId if not provided)
+     * @param postString Additional post data
+     * @return bytes Encoded action type
+     */
+    function executeDirectAction(
+        address feed,
+        ActionType actionType,
+        string memory contentHash,
+        uint256 campaignId,
+        string memory postString
+    ) external returns (bytes memory) {
+        // Process campaign participation directly
+        AdCampaign storage campaign = campaigns[campaignId];
+        
+        // Verify campaign period and slot availability
+        require(campaign.status == CampaignStatus.ACTIVE, "Campaign not active");
+        require(block.timestamp >= campaign.adDisplayTimePeriod.startTime, "Campaign not started");
+        require(block.timestamp <= campaign.adDisplayTimePeriod.endTime, "Campaign ended");
+        
+        // Check if the campaign has minimum followers requirement
+        if (campaign.minFollowersRequired > 0) {
+            // Query current follower count
+            uint256 currentFollowers = graph.getFollowersCount(msg.sender);
+            
+            // Reject if not enough followers
+            require(currentFollowers >= campaign.minFollowersRequired, "Insufficient followers");
+        }
+        
+        // Validate slot availability and action type
+        require(actionType == campaign.actionType, "Incorrect action type for this campaign");
+        require(campaign.claimedSlots < campaign.availableSlots, "No slots available");
+        
+        // Verify allowed content if specified (for quotes)
+        if (actionType == ActionType.QUOTE || actionType == ActionType.COMMENT && bytes(campaign.contentHash).length > 0) {
+            require(keccak256(bytes(contentHash)) == keccak256(bytes(campaign.contentHash)), "Content not authorized");
+        }
+        
+        // Verify action not already performed
+        require(!hasPerformedAction[campaignId][msg.sender][actionType], "Action already performed");
+        
+        // Record action
+        campaignInfluencerActions[campaignId][msg.sender].push(InfluencerAction({
+            influencerAddress: msg.sender,
+            action: actionType,
+            timestamp: block.timestamp,
+            paid: false,
+            postString: postString
+        }));
+        hasPerformedAction[campaignId][msg.sender][actionType] = true;
+        
+        // Mark user as participated in this campaign
+        hasParticipated[campaignId][msg.sender] = true;
+        
+        // Deduct a slot
+        campaign.claimedSlots++;
+        
+        // Emit event for tracking
+        emit InfluencerParticipated(campaignId, contentHash, postString, campaignId, msg.sender, actionType);
+        
+        // Return the action type as bytes for the ActionHub
+        return abi.encode(actionType);
+    }
+    
     /**
      * @notice Create a new logical campaign group
      * @param _groupURI URI for the group

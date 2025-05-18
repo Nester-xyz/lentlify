@@ -69,6 +69,7 @@ struct InfluencerAction {
     ActionType action;
     uint256 timestamp;
     bool paid;
+    string postString;    // The post string used for the action
 }
 
 // New grouping mechanism

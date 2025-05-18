@@ -81,12 +81,14 @@ const Home = () => {
     console.log('Session client available:', !!sessionClient);
   }, [isAuthorized, sessionClient, profile]);
   
+  const marketplace = useLensAdCampaignMarketplace();
   const {
     getCampaignInfo,
     getCampaignAdCount,
     CONTRACT_ADDRESS,
     isLoading: isContractLoading,
-  } = useLensAdCampaignMarketplace();
+    recordInfluencerAction
+  } = marketplace;
 
   // State for campaigns and loading status
   const [campaigns, setCampaigns] = useState<CampaignData[]>([]);
@@ -167,20 +169,66 @@ const Home = () => {
           
           // Create proper metadata for the quote
           const quoteMetadata = textOnly({
-            content: quoteText,
+            content: `${quoteText}\n\n#lentlify #campaign${campaign.id}`,
           });
           
           // Upload the metadata to get a proper Lens URI
           const quoteUpload = await storageClient.uploadAsJson(quoteMetadata);
           console.log('Quote metadata uploaded with URI:', quoteUpload.uri);
           
-          // Post the quote using the generated URI
-          result = await post(sessionClient, {
-            contentUri: quoteUpload.uri,
-            quoteOf: {
-              post: postId(campaign.postId),
-            },
-          });
+          try {
+            console.log('Creating quote with Lens Protocol smart wallet integration');
+            
+            // Get content hash from campaign
+            const campaignContentHash = campaign.contentHash;
+            console.log('Content hash for campaign:', campaignContentHash);
+            
+            // Use the campaign ID from the campaign object
+            const campaignIdToUse = campaign.id;
+            console.log('Using campaign ID:', campaignIdToUse);
+            
+            // Step 1: Create a simple quote post
+            console.log('Step 1: Creating quote post');
+            result = await post(sessionClient, {
+              contentUri: uri(quoteUpload.uri),
+              quoteOf: {
+                post: postId(campaign.postId),
+              }
+            });
+            
+            console.log('Quote post result:', result);
+            
+            // Check if the quote was successful
+            if (result && !('isErr' in result && result.isErr())) {
+              console.log('Quote post created successfully!');
+              
+              // Step 2: Record the action in the contract using Lens Protocol smart wallet
+              console.log('Step 2: Recording action in contract using Lens Protocol smart wallet');
+              
+              try {
+                // Call the recordInfluencerAction function which now uses the Lens Protocol smart wallet
+                console.log('Using Lens Protocol smart wallet for contract interaction');
+                const contractResult = await recordInfluencerAction({
+                  actionType: 3, // QUOTE
+                  postId: campaign.postId,
+                  campaignId: campaignIdToUse,
+                  contentHash: campaignContentHash
+                });
+                
+                console.log('Lens Protocol smart wallet transaction result:', contractResult);
+                console.log('Contract interaction complete!');
+              } catch (contractError) {
+                // If the contract interaction fails, at least the quote post was created
+                console.error('Error with Lens Protocol smart wallet transaction:', contractError);
+                console.log('But the quote post was still created successfully');
+              }
+            } else {
+              console.error('Quote post creation failed:', result);
+            }  
+          } catch (quoteError) {
+            console.error('Error creating quote post:', quoteError);
+            throw quoteError;
+          }
           break;
           
         default:
