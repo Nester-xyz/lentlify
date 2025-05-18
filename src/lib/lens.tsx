@@ -1,4 +1,4 @@
-import { PublicClient, testnet } from "@lens-protocol/client";
+import { PublicClient, staging, testnet } from "@lens-protocol/client";
 import { StorageClient, immutable } from "@lens-chain/storage-client";
 import { fetchAccount } from "@lens-protocol/client/actions";
 

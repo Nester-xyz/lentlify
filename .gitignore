@@ -23,3 +23,7 @@ dist-ssr
 *.sln
 *.sw?
 .env
+
+# Ignore Yarn v2+ files
+.yarn/
+.cursor/
