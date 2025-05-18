@@ -1,12 +1,11 @@
 import React from "react";
 
-// Define a generic transaction type. We can expand this later.
 export interface Transaction {
-  id: string; // Transaction hash or a unique event identifier
+  id: string;
   eventName: string;
   blockNumber: number;
-  timestamp?: number; // Optional: if available
-  data: Record<string, any>; // To store event-specific data
+  timestamp?: number;
+  data: Record<string, any>;
   explorerLink?: string;
 }
 
@@ -16,35 +15,48 @@ interface TransactionHistoryProps {
   error?: string | null;
 }
 
+const formatTimeAgo = (timestamp?: number): string => {
+  if (timestamp === undefined || timestamp === null) return "N/A";
+  const now = new Date().getTime();
+  const seconds = Math.round((now - timestamp * 1000) / 1000);
+
+  if (seconds < 30) return "just now";
+  const minutes = Math.round(seconds / 60);
+  if (minutes < 60) return `${minutes} minute${minutes > 1 ? "s" : ""} ago`;
+  const hours = Math.round(minutes / 60);
+  if (hours < 24) return `${hours} hour${hours > 1 ? "s" : ""} ago`;
+  const days = Math.round(hours / 24);
+  if (days < 30) return `${days} day${days > 1 ? "s" : ""} ago`;
+  const months = Math.round(days / 30);
+  if (months < 12) return `${months} month${months > 1 ? "s" : ""} ago`;
+  const years = Math.round(months / 12);
+  return `${years} year${years > 1 ? "s" : ""} ago`;
+};
+
 const TransactionHistory: React.FC<TransactionHistoryProps> = ({
   transactions,
   isLoading,
   error,
 }) => {
-  //   const formatDate = (timestamp?: number) => {
-  //     if (!timestamp) return "N/A";
-  //     return new Date(timestamp * 1000).toLocaleString();
-  //   };
-
-  const renderTransactionData = (data: Record<string, any>) => {
-    return Object.entries(data)
-      .map(([key, value]) => {
-        let displayValue = value;
-        if (typeof value === "object" && value !== null) {
-          displayValue = JSON.stringify(value);
-        } else if (typeof value === "boolean") {
-          displayValue = value ? "Yes" : "No";
-        } else if (value === undefined || value === null || value === "") {
-          displayValue = "N/A";
-        }
-        return (
-          <div key={key} className="text-xs">
-            <span className="font-semibold">{key}:</span> {String(displayValue)}
-          </div>
-        );
-      })
-      .slice(0, 3); // Show first 3 data points for brevity
-  };
+  // const renderTransactionData = (data: Record<string, any>) => {
+  //   return Object.entries(data)
+  //     .map(([key, value]) => {
+  //       let displayValue = value;
+  //       if (typeof value === "object" && value !== null) {
+  //         displayValue = JSON.stringify(value);
+  //       } else if (typeof value === "boolean") {
+  //         displayValue = value ? "Yes" : "No";
+  //       } else if (value === undefined || value === null || value === "") {
+  //         displayValue = "N/A";
+  //       }
+  //       return (
+  //         <div key={key} className="text-xs">
+  //           <span className="font-semibold">{key}:</span> {String(displayValue)}
+  //         </div>
+  //       );
+  //     })
+  //     .slice(0, 3); // Show first 3 data points for brevity
+  // };
 
   if (isLoading) {
     return (
@@ -89,15 +101,8 @@ const TransactionHistory: React.FC<TransactionHistoryProps> = ({
                 scope="col"
                 className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
               >
-                Data
-              </th>
-
-              {/* <th
-                scope="col"
-                className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
-              >
                 Date
-              </th> */}
+              </th>
               <th
                 scope="col"
                 className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
@@ -114,17 +119,11 @@ const TransactionHistory: React.FC<TransactionHistoryProps> = ({
                     {tx.eventName}
                   </div>
                 </td>
-                <td className="px-6 py-4">
-                  <div className="text-sm text-gray-500 dark:text-gray-300">
-                    {renderTransactionData(tx.data)}
+                <td className="px-6 py-4 whitespace-nowrap">
+                  <div className="text-sm text-gray-500 dark:text-gray-400">
+                    {formatTimeAgo(tx.timestamp)}
                   </div>
                 </td>
-
-                {/* <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="text-sm text-gray-500 dark:text-gray-400">
-                    {formatDate(tx.timestamp)}
-                  </div>
-                </td> */}
                 <td className="px-6 py-4 whitespace-nowrap text-sm">
                   {tx.explorerLink ? (
                     <a
@@ -138,7 +137,7 @@ const TransactionHistory: React.FC<TransactionHistoryProps> = ({
                   ) : (
                     tx.id.startsWith("0x") && (
                       <a
-                        href={`https://explorer.testnet.lens.xyz/tx/${tx.id}`} // Defaulting to polygonscan for now
+                        href={`https://explorer.testnet.lens.xyz/tx/${tx.id}`}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300"
