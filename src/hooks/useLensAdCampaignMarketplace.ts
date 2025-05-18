@@ -1,6 +1,6 @@
 import { useReadContract, useWriteContract, useWaitForTransactionReceipt, useAccount, usePublicClient, useBalance, useSendTransaction } from 'wagmi';
 import { useEffect } from 'react';
-import { encodeFunctionData } from 'viem';
+import { encodeFunctionData, keccak256, toBytes, encodeAbiParameters, stringToHex } from 'viem';
 import { contractAddress, paymentTokenAddress } from '../constants/addresses';
 import { abi } from '../constants/abi';
 import { useSessionClient } from '../context/session/sessionContext';
@@ -999,7 +999,80 @@ export const useLensAdCampaignMarketplace = () => {
     isUpdateFeeCollectorPending || isUpdateFeeCollectorConfirming ||
     isLensTransactionPending;
 
-  const isSuccess = 
+  // Constants for Lens Protocol action parameters - MUST match the contract exactly
+  // These are used directly in the code via keccak256 computation instead
+
+  /**
+   * Records an influencer action on the smart contract using the direct action function
+   * @param actionType - The type of action (1=MIRROR, 2=COMMENT, 3=QUOTE)
+   * @param postId - The ID of the post being interacted with
+   * @param campaignId - The ID of the campaign
+   * @param contentHash - The content hash (required for QUOTE and COMMENT actions)
+   * @returns Transaction result
+   */
+  const recordInfluencerAction = async ({
+    actionType,
+    postId,
+    campaignId,
+    contentHash
+  }: {
+    actionType: number;
+    postId: string;
+    campaignId: number;
+    contentHash?: string;
+  }) => {
+    try {
+      console.log("Using executeDirectAction for contract interaction");
+      console.log("Smart wallet address:", profile?.address);
+      console.log("Campaign ID:", campaignId);
+      console.log("Post ID:", postId);
+      
+      if (!profile?.address) {
+        throw new Error('Lens profile address not available. Please make sure you are logged in to Lens Protocol.');
+      }
+      
+      // Use the Lens Protocol feed address
+      const feedAddress = "0x4d97287FF1A0e030cA4604EcDa9be355dd8A8BaC";
+      
+      // Ensure we have a content hash (required for QUOTE actions)
+      const safeContentHash = contentHash || "";
+      
+      console.log('Calling executeDirectAction with parameters:');
+      console.log('- Feed address:', feedAddress);
+      console.log('- Action type:', actionType);
+      console.log('- Content hash:', safeContentHash);
+      console.log('- Campaign ID:', campaignId);
+      console.log('- Post string:', postId);
+      
+      // Use the Lens Protocol executeLensTransaction function to call the executeDirectAction function
+      const result = await executeLensTransaction({
+        targetFunction: 'executeDirectAction',
+        args: [
+          feedAddress,                  // feed address
+          actionType,                   // action type (as enum: 1=MIRROR, 2=COMMENT, 3=QUOTE)
+          safeContentHash,              // content hash
+          BigInt(campaignId),           // campaign ID
+          postId                        // post string
+        ]
+      });
+      
+      console.log('executeDirectAction transaction result:', result);
+      return result;
+    } catch (error) {
+      console.error('Error calling executeDirectAction:', error);
+      // Log more detailed error information if available
+      if (error && typeof error === 'object' && 'message' in error) {
+        console.error('Error message:', (error as any).message);
+      }
+      if (error && typeof error === 'object' && 'code' in error) {
+        console.error('Error code:', (error as any).code);
+      }
+      throw error;
+    }
+  };
+
+  // Restore the original isSuccess definition
+  const isSuccess = (
     isCreateCampaignConfirmed ||
     isUpdateStatusConfirmed ||
     isUpdateSlotsConfirmed ||
@@ -1012,116 +1085,120 @@ export const useLensAdCampaignMarketplace = () => {
     isRefundDisplayFeeConfirmed ||
     isCollectFeesConfirmed ||
     isUpdatePlatformFeeConfirmed ||
-    isUpdateFeeCollectorConfirmed;
+    isUpdateFeeCollectorConfirmed
+  );
 
   return {
-        // Contract info
-        CONTRACT_ADDRESS,
-        lensAdCampaignConfig,
-        
-        // Read functions
-        getCampaign,
-        getCampaignInfo,
-        getSellerCampaigns,
-        getCampaignInfluencerActions,
-        hasPerformedAction,
-        hasParticipated,
-        hasClaimedReward,
-        getCampaignGroup,
-        getSellerCampaignGroups,
-        getGroupPosts,
-        getCampaignAdCount,
-        getCampaignGroupCount,
-        platformFeePercentage,
-        totalFeesCollected,
-        campaignCounter,
-        groupCounter,
-        
-        // Write functions
-        createCampaign,
-        updateCampaignStatus,
-        updateCampaignSlots,
-        updateCampaignPrices,
-        extendCampaignTime,
-        updateCampaignContent,
-        createCampaignGroup,
-        claimReward,
-        refundDeposits,
-        refundDisplayFee,
-        collectFees,
-        updatePlatformFee,
-        updateFeeCollector,
-        claimBalanceLens,
-        
-        // Lens Account functionality
-        executeLensTransaction,
-        isLensTransactionPending,
-        lensTransactionHash,
-        useLensAccount,
-        activeLensAddress,
-        
-        // Loading and success states
-        isLoading,
-        isSuccess,
-        
-        // Pending states
-        isCreateCampaignPending,
-        isUpdateStatusPending,
-        isUpdateSlotsPending,
-        isUpdatePricesPending,
-        isExtendTimePending,
-        isUpdateContentPending,
-        isCreateGroupPending,
-        isClaimRewardPending,
-        isRefundDepositsPending,
-        isRefundDisplayFeePending,
-        isCollectFeesPending,
-        isUpdatePlatformFeePending,
-        isUpdateFeeCollectorPending,
-        
-        // Confirming states
-        isCreateCampaignConfirming,
-        isUpdateStatusConfirming,
-        isUpdateSlotsConfirming,
-        isUpdatePricesConfirming,
-        isExtendTimeConfirming,
-        isUpdateContentConfirming,
-        isCreateGroupConfirming,
-        isClaimRewardConfirming,
-        isRefundDepositsConfirming,
-        isRefundDisplayFeeConfirming,
-        isCollectFeesConfirming,
-        isUpdatePlatformFeeConfirming,
-        isUpdateFeeCollectorConfirming,
-        
-        // Success states
-        isCreateCampaignConfirmed,
-        isUpdateStatusConfirmed,
-        isUpdateSlotsConfirmed,
-        isUpdatePricesConfirmed,
-        isExtendTimeConfirmed,
-        isUpdateContentConfirmed,
-        isCreateGroupConfirmed,
-        isClaimRewardConfirmed,
-        isRefundDepositsConfirmed,
-        isRefundDisplayFeeConfirmed,
-        isCollectFeesConfirmed,
-        isUpdatePlatformFeeConfirmed,
-        isUpdateFeeCollectorConfirmed,
-        
-        // Transaction hashes
-        createCampaignHash,
-        updateStatusHash,
-        updateSlotsHash,
-        updatePricesHash,
-        extendTimeHash,
-        updateContentHash,
-        createGroupHash,
-        claimRewardHash,
-        refundDepositsHash,
-        refundDisplayFeeHash,
-        collectFeesHash,
-        updatePlatformFeeHash,
-        updateFeeCollectorHash
-      };
-    }
+    // Contract info
+    CONTRACT_ADDRESS,
+    lensAdCampaignConfig,
+      
+      // Read functions
+      getCampaign,
+      getCampaignInfo,
+      getSellerCampaigns,
+      getCampaignInfluencerActions,
+      hasPerformedAction,
+      hasParticipated,
+      hasClaimedReward,
+      getCampaignGroup,
+      getSellerCampaignGroups,
+      getGroupPosts,
+      getCampaignAdCount,
+      getCampaignGroupCount,
+      platformFeePercentage,
+      totalFeesCollected,
+      campaignCounter,
+      groupCounter,
+      
+      // Write functions
+      createCampaign,
+      updateCampaignStatus,
+      updateCampaignSlots,
+      updateCampaignPrices,
+      extendCampaignTime,
+      updateCampaignContent,
+      createCampaignGroup,
+      claimReward,
+      refundDeposits,
+      refundDisplayFee,
+      collectFees,
+      updatePlatformFee,
+      updateFeeCollector,
+      claimBalanceLens,
+      
+      // Lens Account functionality
+      executeLensTransaction,
+      isLensTransactionPending,
+      lensTransactionHash,
+      useLensAccount,
+      activeLensAddress,
+      
+      // Influencer actions
+      recordInfluencerAction,
+      
+      // Loading and success states
+      isLoading,
+      isSuccess,
+      
+      // Pending states
+      isCreateCampaignPending,
+      isUpdateStatusPending,
+      isUpdateSlotsPending,
+      isUpdatePricesPending,
+      isExtendTimePending,
+      isUpdateContentPending,
+      isCreateGroupPending,
+      isClaimRewardPending,
+      isRefundDepositsPending,
+      isRefundDisplayFeePending,
+      isCollectFeesPending,
+      isUpdatePlatformFeePending,
+      isUpdateFeeCollectorPending,
+      
+      // Confirming states
+      isCreateCampaignConfirming,
+      isUpdateStatusConfirming,
+      isUpdateSlotsConfirming,
+      isUpdatePricesConfirming,
+      isExtendTimeConfirming,
+      isUpdateContentConfirming,
+      isCreateGroupConfirming,
+      isClaimRewardConfirming,
+      isRefundDepositsConfirming,
+      isRefundDisplayFeeConfirming,
+      isCollectFeesConfirming,
+      isUpdatePlatformFeeConfirming,
+      isUpdateFeeCollectorConfirming,
+      
+      // Success states
+      isCreateCampaignConfirmed,
+      isUpdateStatusConfirmed,
+      isUpdateSlotsConfirmed,
+      isUpdatePricesConfirmed,
+      isExtendTimeConfirmed,
+      isUpdateContentConfirmed,
+      isCreateGroupConfirmed,
+      isClaimRewardConfirmed,
+      isRefundDepositsConfirmed,
+      isRefundDisplayFeeConfirmed,
+      isCollectFeesConfirmed,
+      isUpdatePlatformFeeConfirmed,
+      isUpdateFeeCollectorConfirmed,
+      
+      // Transaction hashes
+      createCampaignHash,
+      updateStatusHash,
+      updateSlotsHash,
+      updatePricesHash,
+      extendTimeHash,
+      updateContentHash,
+      createGroupHash,
+      claimRewardHash,
+      refundDepositsHash,
+      refundDisplayFeeHash,
+      collectFeesHash,
+      updatePlatformFeeHash,
+      updateFeeCollectorHash
+    };
+  }
