@@ -4768,6 +4768,15 @@ __metadata:
   languageName: node
   linkType: hard
 
+"isows@npm:1.0.7":
+  version: 1.0.7
+  resolution: "isows@npm:1.0.7"
+  peerDependencies:
+    ws: "*"
+  checksum: 044b949b369872882af07b60b613b5801ae01b01a23b5b72b78af80c8103bbeed38352c3e8ceff13a7834bc91fd2eb41cf91ec01d59a041d8705680e6b0ec546
+  languageName: node
+  linkType: hard
+
 "jackspeak@npm:^3.1.2":
   version: 3.4.3
   resolution: "jackspeak@npm:3.4.3"
@@ -4961,7 +4970,7 @@ __metadata:
     tw-animate-css: ^1.2.9
     typescript: ~5.8.3
     typescript-eslint: ^8.30.1
-    viem: ^2.29.2
+    viem: latest
     vite: ^6.3.5
     wagmi: ^2.15.2
   languageName: unknown
@@ -7198,7 +7207,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"viem@npm:>=2.23.11, viem@npm:^2.1.1, viem@npm:^2.29.2":
+"viem@npm:>=2.23.11, viem@npm:^2.1.1":
   version: 2.29.2
   resolution: "viem@npm:2.29.2"
   dependencies:
@@ -7216,6 +7225,27 @@ __metadata:
     typescript:
       optional: true
   checksum: c9bb267dd369008b6e49bf5642258984a99495ac51499d3058954c0b109094c46f6b572aaaa2363208ba613849fac48495f47f5cea8b029bf1082276e27c0ff6
+  languageName: node
+  linkType: hard
+
+"viem@npm:latest":
+  version: 2.29.4
+  resolution: "viem@npm:2.29.4"
+  dependencies:
+    "@noble/curves": 1.8.2
+    "@noble/hashes": 1.7.2
+    "@scure/bip32": 1.6.2
+    "@scure/bip39": 1.5.4
+    abitype: 1.0.8
+    isows: 1.0.7
+    ox: 0.6.9
+    ws: 8.18.1
+  peerDependencies:
+    typescript: ">=5.0.4"
+  peerDependenciesMeta:
+    typescript:
+      optional: true
+  checksum: a78f6282581ab624ca543599862323bc3bd5ba8a7c681205dec85f7b1d34453c40fa4e9b70bafdefc2810bd8b0f73e86beccc92ecc5e98404f057a6dd91a0972
   languageName: node
   linkType: hard
 
