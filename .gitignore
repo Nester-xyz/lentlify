@@ -26,3 +26,4 @@ dist-ssr
 
 # Ignore Yarn v2+ files
 .yarn/
+.cursor/
