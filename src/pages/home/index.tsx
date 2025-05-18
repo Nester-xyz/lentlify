@@ -391,6 +391,7 @@ const Home = () => {
   return (
     <Page
       title="Campaign Groups"
+      pageHeading="Campaign Groups"
       rightSide={
         <>
           <div className="flex space-x-3">

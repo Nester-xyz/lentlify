@@ -34,7 +34,7 @@ const CreateCampaignGroup: React.FC = () => {
   }
 
   return (
-    <Page title="Explore Campaigns">
+    <Page title="Explore Campaigns" pageHeading="Explore Campaigns">
       {isLoading ? (
         <div
           className="grid gap-6 p-6"
