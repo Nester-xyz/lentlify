@@ -1,13 +1,14 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useLensAdCampaignMarketplace, ActionType } from "@/hooks/useLensAdCampaignMarketplace";
-import { FiExternalLink, FiClock, FiUser, FiHash, FiRepeat } from "react-icons/fi";
-import { storageClient } from "@/lib/lens";
+import { FiExternalLink, FiClock, FiUser, FiHash, FiRepeat, FiUsers } from "react-icons/fi";
+import { storageClient, fetchLensProfileByAddress } from "@/lib/lens";
 import { formatDistanceToNow } from 'date-fns';
 import { post, repost } from "@lens-protocol/client/actions";
 import { postId, uri } from "@lens-protocol/client";
 import { textOnly } from "@lens-protocol/metadata";
 import { UseAuth } from "@/context/auth/AuthContext";
+import { formatDistance } from "date-fns";
 
 // Helper function to get action type name
 const getActionTypeName = (actionType: number): string => {
@@ -51,18 +52,112 @@ interface CampaignData {
   metadata?: any;
 }
 
+// Define the influencer action structure
+interface InfluencerAction {
+  influencerAddress: string;
+  action: ActionType;
+  timestamp: bigint;
+  paid: boolean;
+  postString: string;
+  profile?: any; // For storing Lens profile data
+}
+
 const CampaignPost: React.FC = () => {
   const navigate = useNavigate();
   const { pId } = useParams();
   
   console.log(pId);
-  const { getCampaignInfo, CONTRACT_ADDRESS, recordInfluencerAction } = useLensAdCampaignMarketplace();
+  const { getCampaignInfo, CONTRACT_ADDRESS, recordInfluencerAction, getCampaignInfluencerActions, getCampaignParticipants, getCampaignParticipantAddresses } = useLensAdCampaignMarketplace();
   
   const [campaign, setCampaign] = useState<CampaignData | null>(null);
+  const [influencerActions, setInfluencerActions] = useState<InfluencerAction[]>([]);
+  const [participants, setParticipants] = useState<`0x${string}`[]>([]);
   const [isContractLoading, setIsContractLoading] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [isLoadingActions, setIsLoadingActions] = useState(false);
+  const [isLoadingParticipants, setIsLoadingParticipants] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { sessionClient, isAuthorized, profile } = UseAuth();
+  const [showActions, setShowActions] = useState(false);
+
+  // Function to fetch all participants for a campaign
+  const fetchCampaignParticipants = async (campaignId: number) => {
+    if (!campaignId) return;
+    
+    try {
+      setIsLoadingParticipants(true);
+      
+      // Use the new contract getter function to get all participants directly
+      let allParticipants: `0x${string}`[] = [];
+      
+      try {
+        // Try to use the new direct getter function if available
+        allParticipants = await getCampaignParticipantAddresses(campaignId);
+        console.log(`Found ${allParticipants.length} participants for campaign ${campaignId} using direct getter`);
+      } catch (e) {
+        // Fall back to the old method if the new function isn't available
+        console.log('Direct participant getter not available, falling back to old method');
+        allParticipants = await getCampaignParticipants(campaignId);
+        console.log(`Found ${allParticipants.length} participants for campaign ${campaignId} using fallback method`);
+      }
+      
+      // Filter out any undefined values and set the participants
+      const validParticipants = allParticipants.filter((addr): addr is `0x${string}` => !!addr);
+      setParticipants(validParticipants);
+      
+      // Fetch actions for all participants
+      if (validParticipants.length > 0) {
+        await fetchParticipantActions(campaignId, validParticipants);
+      }
+    } catch (error) {
+      console.error('Error fetching campaign participants:', error);
+    } finally {
+      setIsLoadingParticipants(false);
+    }
+  };
+  
+  // Function to fetch actions for all participants
+  const fetchParticipantActions = async (campaignId: number, participantAddresses: `0x${string}`[]) => {
+    if (!campaignId || !participantAddresses.length) return;
+    
+    try {
+      setIsLoadingActions(true);
+      
+      // Fetch actions for each address
+      const actions: InfluencerAction[] = [];
+      
+      for (const address of participantAddresses) {
+        const influencerActions = await getCampaignInfluencerActions(campaignId, address);
+        
+        if (influencerActions && Array.isArray(influencerActions)) {
+          // Process each action
+          for (const action of influencerActions) {
+            // Fetch the Lens profile for this address
+            let profileData = null;
+            try {
+              profileData = await fetchLensProfileByAddress(action.influencerAddress);
+            } catch (error) {
+              console.error('Error fetching profile:', error);
+            }
+            
+            actions.push({
+              ...action,
+              profile: profileData
+            });
+          }
+        }
+      }
+      
+      // Sort actions by timestamp (newest first)
+      actions.sort((a, b) => Number(b.timestamp) - Number(a.timestamp));
+      
+      setInfluencerActions(actions);
+    } catch (error) {
+      console.error('Error fetching participant actions:', error);
+    } finally {
+      setIsLoadingActions(false);
+    }
+  };
 
   useEffect(() => {
     const fetchCampaign = async () => {
@@ -137,15 +232,20 @@ const CampaignPost: React.FC = () => {
         
         setCampaign(campaignData);
         setIsLoading(false);
-      } catch (err: any) {
-        console.error("Error fetching campaign:", err);
-        setError(err.message || "Error fetching campaign");
+        
+        // After fetching campaign data, fetch all participants and their actions
+        fetchCampaignParticipants(Number(pId));
+      } catch (error) {
+        console.error("Error fetching campaign:", error);
+        setError("Error fetching campaign details");
         setIsLoading(false);
       }
     };
     
     fetchCampaign();
-  }, [postId, CONTRACT_ADDRESS]);
+    // Only depend on pId to prevent unnecessary re-fetching
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pId]);
 
    const handleExecuteAction = async (campaign: CampaignData) => {
         const address = profile?.address;
@@ -560,6 +660,70 @@ const CampaignPost: React.FC = () => {
                 </div>
 
             </div>
+            
+            {/* Influencer Actions Section */}
+            <div className="mt-6">
+              <button 
+                onClick={() => setShowActions(!showActions)} 
+                className="flex items-center gap-2 bg-gray-700 hover:bg-gray-600 text-white font-medium py-2 px-4 rounded-md transition-colors"
+              >
+                <FiUsers className="text-lg" />
+                {showActions ? 'Hide Influencer Actions' : 'Show Influencer Actions'}
+              </button>
+              
+              {showActions && (
+                <div className="mt-4 bg-gray-700 p-4 rounded-md">
+                  <h3 className="text-lg font-medium text-white mb-3">Influencer Actions</h3>
+                  
+                  {isLoadingActions ? (
+                    <div className="text-center py-4">
+                      <p className="text-gray-400">Loading actions...</p>
+                    </div>
+                  ) : influencerActions.length > 0 ? (
+                    <div className="space-y-4">
+                      {influencerActions.map((action, index) => (
+                        <div key={index} className="border-b border-gray-600 pb-3 last:border-0 last:pb-0">
+                          <div className="flex items-center gap-2">
+                            {action.profile?.image && (
+                              <img 
+                                src={action.profile.image} 
+                                alt={action.profile.name || 'Profile'} 
+                                className="w-8 h-8 rounded-full object-cover border border-gray-500"
+                              />
+                            )}
+                            <div>
+                              <p className="text-white font-medium">
+                                {action.profile?.name || action.influencerAddress.substring(0, 6) + '...' + action.influencerAddress.substring(38)}
+                              </p>
+                              <p className="text-sm text-gray-400">
+                                {getActionTypeName(Number(action.action))} • {formatDistance(new Date(Number(action.timestamp) * 1000), new Date(), { addSuffix: true })}
+                              </p>
+                            </div>
+                          </div>
+                          
+                          {action.postString && (
+                            <div className="mt-2 pl-10">
+                              <p className="text-gray-300 text-sm">{action.postString}</p>
+                            </div>
+                          )}
+                          
+                          <div className="mt-2 pl-10 flex items-center">
+                            <span className={`text-xs px-2 py-1 rounded-full ${action.paid ? 'bg-green-900 text-green-300' : 'bg-yellow-900 text-yellow-300'}`}>
+                              {action.paid ? 'Reward Paid' : 'Reward Pending'}
+                            </span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-center py-4">
+                      <p className="text-gray-400">No influencer actions found for this campaign</p>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+            
             {/* Action Button */}
           </div>
         </div>

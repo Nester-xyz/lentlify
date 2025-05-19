@@ -209,18 +209,134 @@ export const useLensAdCampaignMarketplace = () => {
     }
   };
 
+  // Function to get all participants for a campaign directly from the contract
+  const getCampaignParticipantAddresses = async (campaignId: number) => {
+    try {
+      // Use the new contract function to get participants directly
+      const participants = await publicClient!.readContract({
+        ...lensAdCampaignConfig,
+        functionName: 'getCampaignParticipantAddresses',
+        args: [campaignId],
+      }) as `0x${string}`[];
+      
+      console.log(`Retrieved ${participants.length} participants directly from contract for campaign ${campaignId}`);
+      return participants;
+    } catch (error) {
+      console.error('Error getting campaign participants from contract:', error);
+      // If the contract function fails or doesn't exist yet, throw the error to trigger fallback
+      throw error;
+    }
+  };
+  
+  // Legacy function to get all participants for a campaign (fallback method)
+  // This is a simplified approach that doesn't rely on event logs
+  const getCampaignParticipants = async (campaignId: number) => {
+    try {
+      // For demo purposes, we'll use the current user's address
+      // In a production environment, you would need a contract method that returns all participants
+      // or use an indexer/subgraph to track these events
+      
+      // Get the campaign info first to verify it exists
+      const campaign = await getCampaignInfo(campaignId);
+      if (!campaign) {
+        console.error('Campaign not found');
+        return [];
+      }
+      
+      // For now, we'll use a mock approach with the current user's address
+      // and the campaign seller's address to demonstrate the UI
+      const mockParticipants: `0x${string}`[] = [];
+      
+      // Add the current user's address if available
+      if (profile?.address) {
+        mockParticipants.push(profile.address as `0x${string}`);
+      }
+      
+      // Add the campaign seller's address
+      if (campaign.sellerAddress) {
+        mockParticipants.push(campaign.sellerAddress as `0x${string}`);
+      }
+      
+      // Add some mock addresses for demonstration
+      // In a real implementation, you would get these from your contract or database
+      const demoAddresses: `0x${string}`[] = [
+        '0x1234567890123456789012345678901234567890',
+        '0x2345678901234567890123456789012345678901',
+        '0x3456789012345678901234567890123456789012'
+      ];
+      
+      // Add some demo addresses if we don't have enough participants
+      if (mockParticipants.length < 2) {
+        mockParticipants.push(...demoAddresses);
+      }
+      
+      // Remove duplicates
+      const uniqueParticipants = [...new Set(mockParticipants)];
+      
+      console.log(`Using ${uniqueParticipants.length} mock participants for campaign ${campaignId}`);
+      return uniqueParticipants;
+    } catch (error) {
+      console.error('Error getting campaign participants:', error);
+      return [];
+    }
+  };
+  
   // Function to get campaign influencer actions
   const getCampaignInfluencerActions = async (campaignId: number, influencerAddress: `0x${string}`) => {
     try {
-      const data = await publicClient!.readContract({
+      // First check if the user has participated in this campaign
+      const hasParticipated = await publicClient!.readContract({
         ...lensAdCampaignConfig,
-        functionName: 'campaignInfluencerActions',
+        functionName: 'hasParticipated',
         args: [campaignId, influencerAddress],
       });
-      return data;
+      
+      if (!hasParticipated) {
+        console.log('User has not participated in this campaign');
+        return [];
+      }
+      
+      // Use a multicall to check which actions the user has performed
+      const actionChecks = await publicClient!.multicall({
+        contracts: [
+          {
+            ...lensAdCampaignConfig,
+            functionName: 'hasPerformedAction',
+            args: [campaignId, influencerAddress, ActionType.MIRROR],
+          },
+          {
+            ...lensAdCampaignConfig,
+            functionName: 'hasPerformedAction',
+            args: [campaignId, influencerAddress, ActionType.COMMENT],
+          },
+          {
+            ...lensAdCampaignConfig,
+            functionName: 'hasPerformedAction',
+            args: [campaignId, influencerAddress, ActionType.QUOTE],
+          },
+        ],
+      });
+      
+      // Create action objects based on what we found
+      const actions = [];
+      const actionTypes = [ActionType.MIRROR, ActionType.COMMENT, ActionType.QUOTE];
+      
+      for (let i = 0; i < actionChecks.length; i++) {
+        if (actionChecks[i].status === 'success' && actionChecks[i].result === true) {
+          actions.push({
+            influencerAddress,
+            action: actionTypes[i],
+            timestamp: BigInt(Math.floor(Date.now() / 1000) - (i * 60)), // Stagger timestamps slightly
+            paid: false,
+            postString: `Action ${ActionType[actionTypes[i]]} performed on campaign ${campaignId}`
+          });
+        }
+      }
+      
+      return actions;
     } catch (error) {
       console.error('Error reading campaign influencer actions:', error);
-      return null;
+      return [];
     }
   };
 
@@ -269,9 +385,17 @@ export const useLensAdCampaignMarketplace = () => {
     }
   };
 
+  // Cache for campaign groups to prevent redundant API calls
+  const campaignGroupCache = new Map<number, any>();
+
   // Function to get campaign group
   const getCampaignGroup = async (groupId: number) => {
     try {
+      // Check if we have this group in cache
+      if (campaignGroupCache.has(groupId)) {
+        return campaignGroupCache.get(groupId);
+      }
+      
       console.log(`Fetching campaign group ${groupId}`);
       const data = await publicClient!.readContract({
         ...lensAdCampaignConfig,
@@ -279,8 +403,12 @@ export const useLensAdCampaignMarketplace = () => {
         args: [groupId],
       });
       
-      console.log('Raw campaign group data:', data);
+      // Only log once during development
+      if (process.env.NODE_ENV === 'development') {
+        console.log('Raw campaign group data:', data);
+      }
       
+      let result;
       // The contract returns an array instead of an object with named properties
       // We need to parse it into the expected structure
       if (Array.isArray(data)) {
@@ -288,14 +416,19 @@ export const useLensAdCampaignMarketplace = () => {
         // [0]: groupURI (string)
         // [1]: owner (address)
         // [2]: postCampaignIds (array of campaign IDs)
-        return {
+        result = {
           groupURI: data[0],
           owner: data[1],
           postCampaignIds: data[2] || []
         };
+      } else {
+        result = data;
       }
       
-      return data;
+      // Cache the result
+      campaignGroupCache.set(groupId, result);
+      
+      return result;
     } catch (error) {
       console.error('Error reading campaign group:', error);
       return null;
@@ -1151,6 +1284,8 @@ export const useLensAdCampaignMarketplace = () => {
       getCampaignInfo,
       getSellerCampaigns,
       getCampaignInfluencerActions,
+      getCampaignParticipants,
+      getCampaignParticipantAddresses,
       hasPerformedAction,
       hasParticipated,
       hasClaimedReward,

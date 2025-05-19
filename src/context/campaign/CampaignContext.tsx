@@ -228,17 +228,12 @@ export const CampaignProvider: React.FC<{ children: React.ReactNode }> = ({
   ]);
 
   useEffect(() => {
+    // Only fetch data on initial load or when dependencies change
     if (initialLoadRef.current || !lastFetchTimeRef.current) {
+      console.log("CampaignContext: Initial data fetch");
       fetchCampaignGroups();
     }
-    const pollingInterval = setInterval(() => {
-      console.log("CampaignContext: Polling for campaign updates");
-      fetchCampaignGroups();
-    }, 30000);
-
-    return () => {
-      clearInterval(pollingInterval);
-    };
+    // No polling - data will only be fetched on initial load or when dependencies change
   }, [fetchCampaignGroups]);
 
   return (

@@ -239,6 +239,12 @@ abstract contract NonAbstractLensAdCampaignMarketplace is Ownable, ReentrancyGua
         // Mark user as participated in this campaign
         hasParticipated[postId][originalMsgSender] = true;
         
+        // Add to participants list if not already added
+        if (!isAddedToParticipantsList[postId][originalMsgSender]) {
+            campaignParticipants[postId].push(originalMsgSender);
+            isAddedToParticipantsList[postId][originalMsgSender] = true;
+        }
+        
         // Deduct a slot
         campaign.claimedSlots++;
 
@@ -306,6 +312,12 @@ abstract contract NonAbstractLensAdCampaignMarketplace is Ownable, ReentrancyGua
         
         // Mark user as participated in this campaign
         hasParticipated[campaignId][msg.sender] = true;
+        
+        // Add to participants list if not already added
+        if (!isAddedToParticipantsList[campaignId][msg.sender]) {
+            campaignParticipants[campaignId].push(msg.sender);
+            isAddedToParticipantsList[campaignId][msg.sender] = true;
+        }
         
         // Deduct a slot
         campaign.claimedSlots++;
@@ -784,6 +796,38 @@ abstract contract NonAbstractLensAdCampaignMarketplace is Ownable, ReentrancyGua
      */
     function getCampaignAdCount() external view returns (uint256) {
         return campaignCounter;
+    }
+    
+    // Track participants for each campaign
+    mapping(uint256 => address[]) private campaignParticipants;
+    mapping(uint256 => mapping(address => bool)) private isAddedToParticipantsList;
+    
+    /**
+     * @notice Get all participants for a specific campaign
+     * @param _campaignId The ID of the campaign
+     * @return An array of participant addresses
+     */
+    function getCampaignParticipantAddresses(uint256 _campaignId) external view returns (address[] memory) {
+        return campaignParticipants[_campaignId];
+    }
+    
+    /**
+     * @notice Get the count of participants for a specific campaign
+     * @param _campaignId The ID of the campaign
+     * @return The number of unique participants
+     */
+    function getCampaignParticipantCount(uint256 _campaignId) external view returns (uint256) {
+        return campaignParticipants[_campaignId].length;
+    }
+    
+    /**
+     * @notice Check if an address has participated in a campaign
+     * @param _campaignId The ID of the campaign
+     * @param _participant The address to check
+     * @return True if the address has participated, false otherwise
+     */
+    function isParticipant(uint256 _campaignId, address _participant) external view returns (bool) {
+        return hasParticipated[_campaignId][_participant];
     }
 
     // ===== UTILITY FUNCTIONS =====

@@ -1,6 +1,7 @@
 import React from "react";
 import CustomizedInput from "@/components/atoms/CustomizedInput";
 import type { TCampaignData } from "../../pages/create-ad/index";
+import CampaignGroupSelector from "./CampaignGroupSelector";
 
 interface Step2FormProps {
   data: TCampaignData;
@@ -12,39 +13,10 @@ const Step2Form: React.FC<Step2FormProps> = ({ data, setData }) => {
     <div className="w-full">
       <div className="w-full space-y-6">
         <div className="text-left">
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-            Campaign Group ID
-          </label>
-          <div className="relative">
-            <CustomizedInput
-              label=""
-              name="group_id"
-              type="text"
-              placeholder="Enter Group ID (0 for no group)"
-              value={data.groupId}
-              onChange={(e) => setData({ ...data, groupId: e.target.value })}
-            />
-            <div className="absolute right-3 top-2 text-gray-500 cursor-help group">
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                className="h-5 w-5"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                />
-              </svg>
-              <div className="absolute bottom-full right-0 mb-2 w-64 p-2 bg-gray-800 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none">
-                Select a campaign group to add this campaign to, or select
-                "None" to create a standalone campaign.
-              </div>
-            </div>
-          </div>
+          <CampaignGroupSelector 
+            value={data.groupId}
+            onChange={(value) => setData({ ...data, groupId: value })}
+          />
         </div>
 
         <div className="relative">
