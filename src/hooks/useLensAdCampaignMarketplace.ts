@@ -1019,14 +1019,14 @@ export const useLensAdCampaignMarketplace = () => {
    * @param postId - The ID of the post being interacted with
    * @param campaignId - The ID of the campaign
    * @param contentHash - The content hash (required for QUOTE and COMMENT actions)
-   * @param useSmartWallet - Whether to use the Lens smart wallet (default: false to avoid duplicates)
+   * @param useSmartWallet - Whether to use the Lens smart wallet (default: true to use Lens relayer/AA system)
    * @returns Transaction result
    */
   const recordInfluencerAction = async ({
     actionType,
     postId,
     campaignId,
-    useSmartWallet = false, // Default to direct contract call to avoid duplicate transactions
+    useSmartWallet = true, // Default to smart wallet to use Lens relayer/AA system
     contentHash
   }: {
     actionType: number;

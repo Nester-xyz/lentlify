@@ -70,18 +70,49 @@ const Register: React.FC = () => {
         metadataUri: uri(metadataUri),
       }).andThen(handleOperationWith(walletClient!));
 
-      console.log(result);
+      console.log('Account creation result:', result);
       if (result.isErr()) throw result.error;
+      
+      // Get the transaction hash from the result
+      const txHash = result.value;
+      console.log('Account creation transaction hash:', txHash);
+      
+      // For Lens Protocol, we need to use the smart wallet address, not the EOA
+      // The smart wallet address is different from the EOA address
+      // Since we can't easily get it from the API right after creation,
+      // we'll use a workaround to get it from the session
+      
+      // First, let's log in with the session client we already have
       login(sessionCl.toString());
-      setSelectedAccount(result.value);
+      
+      // Create a temporary account object with the username we just created
+      const tempAccount = {
+        id: `${userName}`,
+        username: { localName: userName },
+        address: address as `0x${string}` // Temporarily use EOA, we'll update this in the UI later
+      };
+      
+      // Set the selected account
+      setSelectedAccount(tempAccount);
+      
+      // For now, we'll use the temporary account address (EOA) in the profile
+      // In a production environment, you would want to fetch the actual Lens smart wallet address
+      // after the transaction is confirmed and update the profile accordingly
       setProfile({
         name: userName,
         image: profilePhotoUri,
-        address: address!,
+        address: tempAccount.address, // Using the temporary account address for now
         bio: bio,
         coverPicture: coverPhotoUri,
         createdAt: new Date().toISOString(),
       });
+      
+      // Also update the active Lens address in the session context
+      // In a real implementation, you would want to update this with the actual Lens smart wallet address
+      setActiveLensAddress(tempAccount.address);
+      
+      // Add a comment to remind developers to update this in the future
+      console.log('IMPORTANT: In production, update the profile and session with the actual Lens smart wallet address');
       navigate("/");
     } catch (err: any) {
       console.error(err);

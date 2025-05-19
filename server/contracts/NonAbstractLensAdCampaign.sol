@@ -365,7 +365,10 @@ abstract contract NonAbstractLensAdCampaignMarketplace is Ownable, ReentrancyGua
         
         // Basic validation
         require(bytes(_postId).length > 0, "Post ID cannot be empty");
-        require(_adDisplayPeriod.startTime >= block.timestamp, "Start time must be in the future");
+        // Set start time to current block timestamp if it's not specified or in the past
+        if (_adDisplayPeriod.startTime < block.timestamp) {
+            _adDisplayPeriod.startTime = block.timestamp - 1 minutes;
+        }
         require(_adDisplayPeriod.endTime > _adDisplayPeriod.startTime, "End time must be after start time");
         require(_rewardClaimableTime > _adDisplayPeriod.endTime, "Claim time must be after end time");
         require(bytes(_groveContentURI).length > 0, "Grove content URI cannot be empty");

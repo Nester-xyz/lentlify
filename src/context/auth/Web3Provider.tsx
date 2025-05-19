@@ -8,7 +8,7 @@ const config = createConfig(
   getDefaultConfig({
     chains: [chains.testnet],
     transports: {
-      [chains.testnet.id]: http("https://rpc.testnet.lens.dev"),
+      [chains.testnet.id]: http("https://lens-sepolia.g.alchemy.com/v2/-pqdDgazXsQHCMOHRftVSQkTtFX66H8_"),
     },
     walletConnectProjectId: import.meta.env.VITE_WALLETCONNECT_PROJECT_ID,
     appName: "Lentlify",

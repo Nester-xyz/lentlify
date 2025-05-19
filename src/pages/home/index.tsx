@@ -47,7 +47,6 @@ interface CampaignData {
 
 const Home = () => {
   const navigate = useNavigate();
-  const { address } = useAccount();
   const { openSidebarRight, sidebarRightIsVisible } = useSidebar();
   const { sessionClient, isAuthorized, profile } = UseAuth();
   
@@ -58,11 +57,11 @@ const Home = () => {
   }, [isAuthorized, sessionClient, profile]);
   
   const marketplace = useLensAdCampaignMarketplace();
+  const [isContractLoading, setIsContractLoading] = useState(false);
   const {
     getCampaignInfo,
     getCampaignAdCount,
     CONTRACT_ADDRESS,
-    isLoading: isContractLoading,
     recordInfluencerAction
   } = marketplace;
 
@@ -77,115 +76,63 @@ const Home = () => {
 
   // Debug log for wallet address
   useEffect(() => {
-    console.log("Current wallet address:", address);
-  }, [address]);
+    console.log("Current wallet address:", profile?.address);
+  }, [profile?.address]);
   
-  // Handle execute action when buy/claim button is clicked
   const handleExecuteAction = async (campaign: CampaignData) => {
-    try {
-      if (!address) {
-        console.error("Wallet not connected");
-        return;
-      }
-
-      // Get the action type from campaign metadata
-      const actionType = campaign.metadata?.actionType || 0;
-      console.log(`Executing Lens action type: ${actionType} on post ${campaign.postId}`);
-      console.log("Campaign details:", campaign);
-      
-      // Debug auth status at the time of action execution
-      console.log('Auth status at execution time:', { isAuthorized, sessionClient, profile });
-      
-      // Check if session client is available and user is authorized
-      if (!sessionClient || !isAuthorized) {
-        console.error("No Lens session client available or not authorized. Please make sure you're logged in to Lens Protocol.");
-        alert("Please log in to Lens Protocol to perform this action.");
-        return;
-      }
-
-      let result;
-      
-      // Execute different actions based on the action type
-      switch (actionType) {
-        case 1: // MIRROR (Repost)
-          console.log(`Executing MIRROR action on post ${campaign.postId}`);
-          result = await repost(sessionClient, {
-            post: postId(campaign.postId),
-          });
-          break;
-          
-        case 2: // COMMENT
-          console.log(`Executing COMMENT action on post ${campaign.postId}`);
-          // Use comment text from metadata if available, otherwise use a default
-          const commentText = campaign.metadata?.commentText || "Great content! #lentlify";
-          
-          // Create proper metadata for the comment
-          const commentMetadata = textOnly({
-            content: commentText,
-          });
-          
-          // Upload the metadata to get a proper Lens URI
-          const commentUpload = await storageClient.uploadAsJson(commentMetadata);
-          console.log('Comment metadata uploaded with URI:', commentUpload.uri);
-          
-          // Post the comment using the generated URI
-          result = await post(sessionClient, {
-            contentUri: uri(commentUpload.uri),
-            commentOn: {
+    const address = profile?.address
+      try {
+        if (!address) {
+          console.error("Wallet not connected");
+          return;
+        }
+  
+        // Get the action type from campaign metadata
+        const actionType = campaign.metadata?.actionType || 0;
+        console.log(`Executing Lens action type: ${actionType} on post ${campaign.postId}`);
+        console.log("Campaign details:", campaign);
+        
+        // Debug auth status at the time of action execution
+        console.log('Auth status at execution time:', { isAuthorized, sessionClient, profile });
+        
+        // Check if session client is available and user is authorized
+        if (!sessionClient || !isAuthorized) {
+          console.error("No Lens session client available or not authorized. Please make sure you're logged in to Lens Protocol.");
+          alert("Please log in to Lens Protocol to perform this action.");
+          return;
+        }
+  
+        setIsContractLoading(true);
+        let result;
+        
+        // Execute different actions based on the action type
+        switch (actionType) {
+          case 1: // MIRROR (Repost)
+            console.log(`Executing MIRROR action on post ${campaign.postId}`);
+            result = await repost(sessionClient, {
               post: postId(campaign.postId),
-            }
-            // Removed feed parameter that was causing 'Feed does not exist' error
-          });
-          break;
-          
-        case 3: // QUOTE
-          console.log(`Executing QUOTE action on post ${campaign.postId}`);
-          // Use quote text from metadata if available, otherwise use a default
-          const quoteText = campaign.metadata?.quoteText || "Check out this interesting content! #lentlify";
-          
-          // Create proper metadata for the quote
-          const quoteMetadata = textOnly({
-            content: `${quoteText}\n\n#lentlify #campaign${campaign.id}`,
-          });
-          
-          // Upload the metadata to get a proper Lens URI
-          const quoteUpload = await storageClient.uploadAsJson(quoteMetadata);
-          console.log('Quote metadata uploaded with URI:', quoteUpload.uri);
-          
-          try {
-            console.log('Creating quote with Lens Protocol smart wallet integration');
-            
-            // Get content hash from campaign
-            const campaignContentHash = campaign.contentHash;
-            console.log('Content hash for campaign:', campaignContentHash);
-            
-            // Use the campaign ID from the campaign object
-            const campaignIdToUse = campaign.id;
-            console.log('Using campaign ID:', campaignIdToUse);
-            
-            // Step 1: Create a simple quote post
-            console.log('Step 1: Creating quote post');
-            result = await post(sessionClient, {
-              contentUri: uri(quoteUpload.uri),
-              quoteOf: {
-                post: postId(campaign.postId),
-              }
             });
             
-            console.log('Quote post result:', result);
-            
-            // Check if the quote was successful
+            // Check if the mirror was successful
             if (result && !('isErr' in result && result.isErr())) {
-              console.log('Quote post created successfully!');
+              console.log('Mirror post created successfully!');
               
-              // Step 2: Record the action in the contract using Lens Protocol smart wallet
-              console.log('Step 2: Recording action in contract using Lens Protocol smart wallet');
+              // Record the action in the contract using Lens Protocol smart wallet
+              console.log('Recording action in contract using Lens Protocol smart wallet');
               
               try {
-                // Call the recordInfluencerAction function which now uses the Lens Protocol smart wallet
+                // Get content hash from campaign
+                const campaignContentHash = campaign.contentHash;
+                console.log('Content hash for campaign:', campaignContentHash);
+                
+                // Use the campaign ID from the campaign object
+                const campaignIdToUse = campaign.id;
+                console.log('Using campaign ID:', campaignIdToUse);
+                
+                // Call the recordInfluencerAction function which uses the Lens Protocol smart wallet
                 console.log('Using Lens Protocol smart wallet for contract interaction');
                 const contractResult = await recordInfluencerAction({
-                  actionType: 3, // QUOTE
+                  actionType: 1, // MIRROR
                   postId: campaign.postId,
                   campaignId: campaignIdToUse,
                   contentHash: campaignContentHash
@@ -194,37 +141,152 @@ const Home = () => {
                 console.log('Lens Protocol smart wallet transaction result:', contractResult);
                 console.log('Contract interaction complete!');
               } catch (contractError) {
-                // If the contract interaction fails, at least the quote post was created
+                // If the contract interaction fails, at least the mirror post was created
                 console.error('Error with Lens Protocol smart wallet transaction:', contractError);
-                console.log('But the quote post was still created successfully');
+                console.log('But the mirror post was still created successfully');
               }
             } else {
-              console.error('Quote post creation failed:', result);
-            }  
-          } catch (quoteError) {
-            console.error('Error creating quote post:', quoteError);
-            throw quoteError;
-          }
-          break;
-          
-        default:
-          console.error(`Unknown action type: ${actionType}`);
-          return;
+              console.error('Mirror post creation failed:', result);
+            }
+            break;
+            
+          case 2: // COMMENT
+            console.log(`Executing COMMENT action on post ${campaign.postId}`);
+            // Use comment text from metadata if available, otherwise use a default
+            const commentText = campaign.metadata?.commentText || "Great content! #lentlify";
+            
+            // Create proper metadata for the comment
+            const commentMetadata = textOnly({
+              content: commentText,
+            });
+            
+            // Upload the metadata to get a proper Lens URI
+            const commentUpload = await storageClient.uploadAsJson(commentMetadata);
+            console.log('Comment metadata uploaded with URI:', commentUpload.uri);
+            
+            // Post the comment using the generated URI
+            result = await post(sessionClient, {
+              contentUri: uri(commentUpload.uri),
+              commentOn: {
+                post: postId(campaign.postId),
+              }
+            });
+            
+            // Check if the comment was successful
+            if (result && !('isErr' in result && result.isErr())) {
+              console.log('Comment post created successfully!');
+              
+              // Record the action in the contract using Lens Protocol smart wallet
+              console.log('Recording action in contract using Lens Protocol smart wallet');
+              
+              try {
+                // Get content hash from campaign
+                const campaignContentHash = campaign.contentHash;
+                console.log('Content hash for campaign:', campaignContentHash);
+                
+                // Use the campaign ID from the campaign object
+                const campaignIdToUse = campaign.id;
+                console.log('Using campaign ID:', campaignIdToUse);
+                
+                // Call the recordInfluencerAction function which uses the Lens Protocol smart wallet
+                console.log('Using Lens Protocol smart wallet for contract interaction');
+                const contractResult = await recordInfluencerAction({
+                  actionType: 2, // COMMENT
+                  postId: campaign.postId,
+                  campaignId: campaignIdToUse,
+                  contentHash: campaignContentHash
+                });
+                
+                console.log('Lens Protocol smart wallet transaction result:', contractResult);
+                console.log('Contract interaction complete!');
+              } catch (contractError) {
+                // If the contract interaction fails, at least the comment post was created
+                console.error('Error with Lens Protocol smart wallet transaction:', contractError);
+                console.log('But the comment post was still created successfully');
+              }
+            } else {
+              console.error('Comment post creation failed:', result);
+            }
+            break;
+            
+          case 3: // QUOTE
+            console.log(`Executing QUOTE action on post ${campaign.postId}`);
+            // Use quote text from metadata if available, otherwise use a default
+            const quoteText = campaign.metadata?.quoteText || "Check out this interesting content! #lentlify";
+            
+            // Create proper metadata for the quote
+            const quoteMetadata = textOnly({
+              content: `${quoteText}\n\n#lentlify #campaign${campaign.id}`,
+            });
+            
+            // Upload the metadata to get a proper Lens URI
+            const quoteUpload = await storageClient.uploadAsJson(quoteMetadata);
+            console.log('Quote metadata uploaded with URI:', quoteUpload.uri);
+            
+            try {
+              console.log('Creating quote with Lens Protocol smart wallet integration');
+              
+              // Get content hash from campaign
+              const campaignContentHash = campaign.contentHash;
+              console.log('Content hash for campaign:', campaignContentHash);
+              
+              // Use the campaign ID from the campaign object
+              const campaignIdToUse = campaign.id;
+              console.log('Using campaign ID:', campaignIdToUse);
+              
+              // Step 1: Create a simple quote post
+              console.log('Step 1: Creating quote post');
+              result = await post(sessionClient, {
+                contentUri: uri(quoteUpload.uri),
+                quoteOf: {
+                  post: postId(campaign.postId),
+                }
+              });
+              
+              console.log('Quote post result:', result);
+              
+              // Check if the quote was successful
+              if (result && !('isErr' in result && result.isErr())) {
+                console.log('Quote post created successfully!');
+                
+                // Step 2: Record the action in the contract using Lens Protocol smart wallet
+                console.log('Step 2: Recording action in contract using Lens Protocol smart wallet');
+                
+                try {
+                  // Call the recordInfluencerAction function which now uses the Lens Protocol smart wallet
+                  console.log('Using Lens Protocol smart wallet for contract interaction');
+                  const contractResult = await recordInfluencerAction({
+                    actionType: 3, // QUOTE
+                    postId: campaign.postId,
+                    campaignId: campaignIdToUse,
+                    contentHash: campaignContentHash
+                  });
+                  
+                  console.log('Lens Protocol smart wallet transaction result:', contractResult);
+                  console.log('Contract interaction complete!');
+                } catch (contractError) {
+                  // If the contract interaction fails, at least the quote post was created
+                  console.error('Error with Lens Protocol smart wallet transaction:', contractError);
+                  console.log('But the quote post was still created successfully');
+                }
+              } else {
+                console.error('Quote post creation failed:', result);
+              }  
+            } catch (quoteError) {
+              console.error('Error creating quote post:', quoteError);
+              throw quoteError;
+            }
+            break;
+            
+          default:
+            console.error('Unsupported action type:', actionType);
+        }
+      } catch (error) {
+        console.error('Error executing action:', error);
+      } finally {
+        setIsContractLoading(false);
       }
-
-      // Check if the operation was successful
-      if (result && 'isErr' in result && result.isErr()) {
-        console.error("Lens Protocol action failed:", result.error);
-        return;
-      }
-      
-      console.log(`Action ${actionType} executed successfully:`, result);
-
-      console.log(`Ready to execute actions...`)
-    } catch (error) {
-      console.error("Error executing action:", error);
-    }
-  };
+    };
 
   useEffect(() => {
     console.log("Contract address:", CONTRACT_ADDRESS);
@@ -508,18 +570,28 @@ const Home = () => {
                 
                 {/* Action buttons */}
                 <div className="flex gap-2 mt-3 mb-4">                  
-                  {campaign.status === 1 && campaign.availableLikeSlots && Number(campaign.availableLikeSlots) > 0 && (
+                  {campaign.status === 1 && (
                     <button 
-                      className="w-full mt-2 bg-gradient-to-r from-green-600 to-green-800 hover:from-green-700 hover:to-green-900 text-white font-medium py-2 px-4 rounded-md flex items-center justify-center transition-colors"
+                      className={`w-full mt-2 ${campaign.endTime && Number(campaign.endTime) * 1000 < Date.now() 
+                        ? 'bg-gray-600 cursor-not-allowed' 
+                        : campaign.availableLikeSlots && Number(campaign.availableLikeSlots) > 0 
+                          ? 'bg-gradient-to-r from-green-600 to-green-800 hover:from-green-700 hover:to-green-900' 
+                          : 'bg-gray-600 cursor-not-allowed'} text-white font-medium py-2 px-4 rounded-md flex items-center justify-center transition-colors`}
                       onClick={(e) => {
                         e.preventDefault();
                         e.stopPropagation();
                         handleExecuteAction(campaign);
                       }}
-                      disabled={isContractLoading}
+                      disabled={Boolean(isContractLoading || !(campaign.availableLikeSlots && Number(campaign.availableLikeSlots) > 0) || (campaign.endTime && Number(campaign.endTime) * 1000 < Date.now()))}
                     >
                       <FiRepeat className="mr-2" />
-                      {isContractLoading ? 'Processing...' : `${ActionType[campaign.metadata?.actionType || 0]} for ${campaign.likeReward ? (Number(campaign.likeReward) / 1e18).toFixed(4) : '0'} GRASS`}
+                      {isContractLoading 
+                        ? 'Processing...' 
+                        : campaign.endTime && Number(campaign.endTime) * 1000 < Date.now()
+                          ? 'Ended'
+                        : campaign.availableLikeSlots && Number(campaign.availableLikeSlots) > 0 
+                          ? `${ActionType[campaign.metadata?.actionType||0]} for ${campaign.likeReward && BigInt(campaign.likeReward) > 0 ? (Number(BigInt(campaign.likeReward)) / 1e18).toFixed(4) + ' GRASS' : 'Completed'}` 
+                          : 'Campaign Full'}
                     </button>
                   )}
                 </div>
@@ -527,7 +599,7 @@ const Home = () => {
                 {/* Time info */}
                 <div className="flex justify-between items-center text-sm text-gray-400">
                   <div>
-                    <span>Ends: </span>
+                    <span>{campaign.endTime && Number(campaign.endTime) * 1000 < Date.now() ? 'Ended: ' : 'Ends: '}</span>
                     <span>
                       {campaign.endTime ? 
                         formatDistanceToNow(new Date(Number(campaign.endTime) * 1000), { addSuffix: true }) : 

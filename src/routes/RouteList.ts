@@ -27,7 +27,7 @@ export const RouteList = [
   },
   {
     pathName: "CampaignPost",
-    path: "/campaign-post/:postId",
+    path: "/campaign-post/:pId",
     location: lazy(async () => await import("../pages/campaign-post")),
     exact: true,
   },
