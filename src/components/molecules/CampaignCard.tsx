@@ -60,18 +60,31 @@ const CampaignCard = ({
             <div className="ml-4 flex-grow min-w-0">
               <p className="text-xl font-semibold">{group.metadata?.name}</p>
               <p className="flex gap-2 items-center">
-                <img
-                  className="w-5 h-5 rounded-full"
-                  src={ownerProfiles[group.owner]?.image || ""}
-                  alt={ownerProfiles[group.owner]?.name || "Owner"}
-                />
-                <span className="text-gray-700 dark:text-gray-300 inline-block max-w-[100px] align-bottom truncate">
-                  {ownerProfiles[group.owner] !== undefined
-                    ? ownerProfiles[group.owner]?.name || group.owner
-                    : group.owner
-                    ? group.owner.substring(0, 6) + "..."
-                    : "N/A"}
-                </span>
+                {Object.keys(ownerProfiles[group.owner] ?? {})?.includes(
+                  "image"
+                ) ? (
+                  <>
+                    <img
+                      className="w-5 h-5 rounded-full"
+                      src={ownerProfiles[group.owner]?.image || ""}
+                      alt={ownerProfiles[group.owner]?.name || "Owner"}
+                    />
+                    <span className="text-gray-700 dark:text-gray-300 inline-block max-w-[100px] align-bottom truncate">
+                      {ownerProfiles[group.owner] !== undefined
+                        ? ownerProfiles[group.owner]?.name || group.owner
+                        : group.owner
+                        ? group.owner.substring(0, 6) + "..."
+                        : "N/A"}
+                    </span>
+                  </>
+                ) : (
+                  <>
+                    <div className="flex items-center mb-3">
+                      <div className="w-10 h-10 rounded-full overflow-hidden bg-gray-100 dark:bg-gray-700 shimmer mr-3"></div>
+                      <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-3/4 shimmer"></div>
+                    </div>
+                  </>
+                )}
               </p>
 
               <p className="mt-2 text-sm text-gray-600 dark:text-gray-400 text-left max-h-20 overflow-hidden text-ellipsis">
