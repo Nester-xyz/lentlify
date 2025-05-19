@@ -335,16 +335,6 @@ const CampaignGroupDetail: React.FC = () => {
 
   return (
     <Page pageHeading="Campagin Group Details" title="Campaign Group Details">
-      {/* Sticky Header */}
-      <div className="sticky top-0 z-10">
-        <div className="flex justify-between items-center">
-          <h1 className="p-4 text-2xl font-bold text-white">
-            Campaign Group Details
-          </h1>
-        </div>
-        <div className="border-t border-gray-700 mb-2"></div>
-      </div>
-
       {/* Loading state */}
       {isLoading && (
         <div className="flex justify-center items-center py-12">
@@ -363,17 +353,6 @@ const CampaignGroupDetail: React.FC = () => {
       {/* Campaign group details */}
       {!isLoading && !error && campaignGroup && (
         <div>
-          <div className="p-2">
-            <button
-              onClick={() => {
-                navigate(`/campaign`);
-              }}
-              className="mb-2 w-10 h-10 flex items-center justify-center rounded-full cursor-pointer bg-gray-600 hover:bg-gray-700 transition-colors"
-              aria-label="Back"
-            >
-              <FiArrowLeft size={28} className="text-gray-300" />
-            </button>
-          </div>
           <div className="p-2 bg-gray-800 rounded-lg overflow-hidden border border-gray-700">
             {/* Cover photo */}
             <div className="h-48 bg-gray-700 relative">
