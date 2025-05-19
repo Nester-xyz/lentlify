@@ -6,6 +6,7 @@ import { useAccount } from "wagmi";
 import { FaPlus } from "react-icons/fa";
 import { FiExternalLink } from "react-icons/fi";
 import { storageClient } from "@/lib/lens";
+import Page from "@/components/molecules/Page";
 
 // Define types for campaign group data
 interface CampaignGroupData {
@@ -316,184 +317,191 @@ const Profile = () => {
   ]);
 
   return (
-    <div className="max-w-4xl mx-auto py-8 px-4">
-      {/* Profile Section */}
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg overflow-hidden mb-8">
-        {/* Cover and Profile Picture */}
-        <div
-          className="relative h-48 bg-gray-200 dark:bg-gray-700 bg-cover bg-center"
-          style={
-            profile.coverPicture
-              ? { backgroundImage: `url(${profile.coverPicture})` }
-              : undefined
-          }
-        >
-          <div className="absolute -bottom-16 left-8">
-            <div className="relative">
-              <div className="h-32 w-32 rounded-full border-4 border-white dark:border-gray-800 bg-gray-200 dark:bg-gray-700 flex items-center justify-center overflow-hidden">
-                {profile.image ? (
-                  <img
-                    src={profile.image}
-                    alt={profile.name}
-                    className="h-full w-full object-cover"
-                  />
-                ) : (
-                  <div className="h-full w-full bg-gray-400 flex items-center justify-center text-white font-bold">
-                    {profile.name.charAt(0).toUpperCase()}
-                  </div>
-                )}
+    <Page pageHeading="Profile" title="Profile">
+      <div className="max-w-4xl mx-auto py-8 px-4">
+        {/* Profile Section */}
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg overflow-hidden mb-8">
+          {/* Cover and Profile Picture */}
+          <div
+            className="relative h-48 bg-gray-200 dark:bg-gray-700 bg-cover bg-center"
+            style={
+              profile.coverPicture
+                ? { backgroundImage: `url(${profile.coverPicture})` }
+                : undefined
+            }
+          >
+            <div className="absolute -bottom-16 left-8">
+              <div className="relative">
+                <div className="h-32 w-32 rounded-full border-4 border-white dark:border-gray-800 bg-gray-200 dark:bg-gray-700 flex items-center justify-center overflow-hidden">
+                  {profile.image ? (
+                    <img
+                      src={profile.image}
+                      alt={profile.name}
+                      className="h-full w-full object-cover"
+                    />
+                  ) : (
+                    <div className="h-full w-full bg-gray-400 flex items-center justify-center text-white font-bold">
+                      {profile.name.charAt(0).toUpperCase()}
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
           </div>
-        </div>
 
-        {/* Profile Info */}
-        <div className="pt-20 px-8 pb-8">
-          <div className="flex justify-between items-start mb-4">
-            <div>
-              <h1 className="text-2xl font-bold text-gray-800 dark:text-white">
-                {profile.name}
-              </h1>
-              <p className="text-sm text-gray-500 dark:text-gray-400">
-                Joined: {new Date(profile.createdAt).toLocaleDateString()}
-              </p>
+          {/* Profile Info */}
+          <div className="pt-20 px-8 pb-8">
+            <div className="flex justify-between items-start mb-4">
+              <div>
+                <h1 className="text-2xl font-bold text-gray-800 dark:text-white">
+                  {profile.name}
+                </h1>
+                <p className="text-sm text-gray-500 dark:text-gray-400">
+                  Joined: {new Date(profile.createdAt).toLocaleDateString()}
+                </p>
+              </div>
+            </div>
+
+            {/* Bio */}
+            <div className="mb-6">
+              {profile.bio && (
+                <p className="text-gray-700 dark:text-gray-300">
+                  {profile.bio}
+                </p>
+              )}
             </div>
           </div>
-
-          {/* Bio */}
-          <div className="mb-6">
-            {profile.bio && (
-              <p className="text-gray-700 dark:text-gray-300">{profile.bio}</p>
-            )}
-          </div>
         </div>
-      </div>
 
-      {/* Campaign Groups Section */}
-      <div>
-        {/* Header with create buttons */}
-        <div className="flex justify-between items-center mb-8">
-          <h1 className="text-2xl font-bold text-white">My Campaign Groups</h1>
-          <div className="flex space-x-3">
-            <button
-              onClick={() => navigate("/create")}
-              className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition flex items-center"
-            >
-              <FaPlus className="mr-2" /> Create Campaign
-            </button>
-            {/* <button
+        {/* Campaign Groups Section */}
+        <div>
+          {/* Header with create buttons */}
+          <div className="flex justify-between items-center mb-8">
+            <h1 className="text-2xl font-bold text-white">
+              My Campaign Groups
+            </h1>
+            <div className="flex space-x-3">
+              <button
+                onClick={() => navigate("/create")}
+                className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition flex items-center"
+              >
+                <FaPlus className="mr-2" /> Create Campaign
+              </button>
+              {/* <button
               onClick={() => navigate("/create-ad")}
               className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition flex items-center"
             >
               <FaPlus className="mr-2" /> Create AD
             </button> */}
+            </div>
           </div>
-        </div>
 
-        {/* Loading state */}
-        {isLoading && (
-          <div className="flex justify-center items-center py-12">
-            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+          {/* Loading state */}
+          {isLoading && (
+            <div className="flex justify-center items-center py-12">
+              <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+            </div>
+          )}
+
+          {/* Error state */}
+          {error && (
+            <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-6">
+              <strong className="font-bold">Error: </strong>
+              <span className="block sm:inline">{error}</span>
+            </div>
+          )}
+
+          {/* Empty state */}
+          {!isLoading && !error && campaignGroups.length === 0 && (
+            <div className="text-center py-12 bg-gray-800 rounded-lg">
+              <h3 className="text-xl font-medium text-white mb-2">
+                No campaign groups found
+              </h3>
+              <p className="text-gray-400 mb-6">
+                Create your first campaign group to get started
+              </p>
+              <button
+                onClick={() => navigate("/create")}
+                className="px-6 py-3 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition"
+              >
+                Create Campaign
+              </button>
+            </div>
+          )}
+
+          {/* Campaign groups list */}
+          <div className="text-2xl font-bold mb-6 text-slate-500">
+            Your Campaigns
           </div>
-        )}
-
-        {/* Error state */}
-        {error && (
-          <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-6">
-            <strong className="font-bold">Error: </strong>
-            <span className="block sm:inline">{error}</span>
-          </div>
-        )}
-
-        {/* Empty state */}
-        {!isLoading && !error && campaignGroups.length === 0 && (
-          <div className="text-center py-12 bg-gray-800 rounded-lg">
-            <h3 className="text-xl font-medium text-white mb-2">
-              No campaign groups found
-            </h3>
-            <p className="text-gray-400 mb-6">
-              Create your first campaign group to get started
-            </p>
-            <button
-              onClick={() => navigate("/create")}
-              className="px-6 py-3 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition"
-            >
-              Create Campaign
-            </button>
-          </div>
-        )}
-
-        {/* Campaign groups list */}
-        <div className="text-2xl font-bold mb-6 text-slate-500">
-          Your Campaigns
-        </div>
-        <div className="space-y-8">
-          {campaignGroups.map((group) => (
-            <div
-              key={group.id}
-              className="bg-gray-800 rounded-lg overflow-hidden border border-gray-700 hover:border-blue-500 transition cursor-pointer"
-              onClick={() => navigate(`/campaign-group/${group.id}`)}
-            >
-              {/* Cover photo */}
-              <div className="h-48 bg-gray-700 relative">
-                {group.metadata?.coverPhoto ? (
-                  <img
-                    src={group.metadata.coverPhoto}
-                    alt="Cover"
-                    className="w-full h-full object-cover"
-                  />
-                ) : (
-                  <div className="w-full h-full bg-gradient-to-r from-blue-900 to-purple-900"></div>
-                )}
-              </div>
-
-              {/* Profile section */}
-              <div className="px-6 pt-4 pb-6 relative">
-                {/* Profile photo */}
-                <div className="absolute -top-16 left-6 w-32 h-32 rounded-full border-4 border-gray-800 overflow-hidden bg-gray-700">
-                  {group.metadata?.profilePhoto ? (
+          <div className="space-y-8">
+            {campaignGroups.map((group) => (
+              <div
+                key={group.id}
+                className="bg-gray-800 rounded-lg overflow-hidden border border-gray-700 hover:border-blue-500 transition cursor-pointer"
+                onClick={() => navigate(`/campaign-group/${group.id}`)}
+              >
+                {/* Cover photo */}
+                <div className="h-48 bg-gray-700 relative">
+                  {group.metadata?.coverPhoto ? (
                     <img
-                      src={group.metadata.profilePhoto}
-                      alt="Profile"
+                      src={group.metadata.coverPhoto}
+                      alt="Cover"
                       className="w-full h-full object-cover"
                     />
                   ) : (
-                    <div className="w-full h-full bg-gradient-to-r from-blue-500 to-purple-500"></div>
+                    <div className="w-full h-full bg-gradient-to-r from-blue-900 to-purple-900"></div>
                   )}
                 </div>
 
-                {/* Group info */}
-                <div className="ml-40">
-                  <h2 className="text-xl font-bold text-white">
-                    {group.metadata?.name || `Campaign Group #${group.id}`}
-                  </h2>
-                  <p className="text-gray-400 text-sm mb-2 truncate">
-                    {address}
-                  </p>
-                  <p className="text-gray-300 mb-4">
-                    {group.metadata?.description || "No description available"}
-                  </p>
+                {/* Profile section */}
+                <div className="px-6 pt-4 pb-6 relative">
+                  {/* Profile photo */}
+                  <div className="absolute -top-16 left-6 w-32 h-32 rounded-full border-4 border-gray-800 overflow-hidden bg-gray-700">
+                    {group.metadata?.profilePhoto ? (
+                      <img
+                        src={group.metadata.profilePhoto}
+                        alt="Profile"
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <div className="w-full h-full bg-gradient-to-r from-blue-500 to-purple-500"></div>
+                    )}
+                  </div>
 
-                  {/* Stats */}
-                  <div className="flex items-center text-sm text-gray-400 mt-4">
-                    <div className="flex items-center mr-6">
-                      <span className="font-medium">
-                        {group.campaigns.length}
-                      </span>
-                      <span className="ml-1">campaigns</span>
-                    </div>
-                    <div className="flex items-center">
-                      <FiExternalLink className="mr-1" />
-                      <span>View details</span>
+                  {/* Group info */}
+                  <div className="ml-40">
+                    <h2 className="text-xl font-bold text-white">
+                      {group.metadata?.name || `Campaign Group #${group.id}`}
+                    </h2>
+                    <p className="text-gray-400 text-sm mb-2 truncate">
+                      {address}
+                    </p>
+                    <p className="text-gray-300 mb-4">
+                      {group.metadata?.description ||
+                        "No description available"}
+                    </p>
+
+                    {/* Stats */}
+                    <div className="flex items-center text-sm text-gray-400 mt-4">
+                      <div className="flex items-center mr-6">
+                        <span className="font-medium">
+                          {group.campaigns.length}
+                        </span>
+                        <span className="ml-1">campaigns</span>
+                      </div>
+                      <div className="flex items-center">
+                        <FiExternalLink className="mr-1" />
+                        <span>View details</span>
+                      </div>
                     </div>
                   </div>
                 </div>
               </div>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
       </div>
-    </div>
+    </Page>
   );
 };
 

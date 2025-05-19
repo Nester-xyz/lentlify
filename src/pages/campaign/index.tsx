@@ -9,14 +9,6 @@ const CreateCampaignGroup: React.FC = () => {
   const { campaignGroups, isLoading, error, fetchCampaignGroups, profiles } =
     useCampaignContext();
 
-  console.table({
-    campaignGroups,
-    isLoading,
-    profiles,
-  });
-
-  console.log(profiles);
-
   if (error) {
     return (
       <div className="w-full min-h-screen flex flex-col items-center justify-center bg-gray-50 dark:bg-gray-900">
