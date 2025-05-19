@@ -379,7 +379,7 @@ abstract contract NonAbstractLensAdCampaignMarketplace is Ownable, ReentrancyGua
         require(bytes(_postId).length > 0, "Post ID cannot be empty");
         // Set start time to current block timestamp if it's not specified or in the past
         if (_adDisplayPeriod.startTime < block.timestamp) {
-            _adDisplayPeriod.startTime = block.timestamp - 1 minutes;
+            _adDisplayPeriod.startTime = block.timestamp + 2 minutes;
         }
         require(_adDisplayPeriod.endTime > _adDisplayPeriod.startTime, "End time must be after start time");
         require(_rewardClaimableTime > _adDisplayPeriod.endTime, "Claim time must be after end time");

@@ -32,6 +32,7 @@ interface CampaignData {
   likeReward: bigint;
   commentReward: bigint;
   quoteReward: bigint;
+  participantCount?: number;
   metadata?: {
     title?: string;
     description?: string;
@@ -61,6 +62,7 @@ const Home = () => {
   const {
     getCampaignInfo,
     getCampaignAdCount,
+    getCampaignParticipantCount,
     CONTRACT_ADDRESS,
     recordInfluencerAction
   } = marketplace;
@@ -343,6 +345,11 @@ const Home = () => {
           const campaignInfo = await getCampaignInfo(i);
           console.log(`Campaign info for ID ${i}:`, campaignInfo);
           
+          // Get participant count for this campaign
+          console.log(`Fetching participant count for campaign ${i}`);
+          const participantCount = await getCampaignParticipantCount(i);
+          console.log(`Campaign ${i} has ${participantCount} participants`);
+          
           if (campaignInfo) {
             let campaignMetadata: any = {};
             
@@ -368,37 +375,27 @@ const Home = () => {
                   campaignMetadata = await metadataResponse.json();
                   console.log(`Fetched metadata for campaign ${i}:`, campaignMetadata);
                 }
-              } catch (err) {
+              } catch (err: any) {
                 console.error(`Error fetching metadata for campaign ${i}:`, err);
+                setError(err.message || "Failed to load campaigns");
+              } finally {
+                setIsLoading(false);
+                initialLoadRef.current = false; // Mark initial load as complete
               }
             }
             
+            // Add the campaign to our list
             campaignsData.push({
-              id: i,
-              postId: campaignInfo.postId,
-              sellerAddress: campaignInfo.sellerAddress,
-              startTime: campaignInfo.startTime,
-              endTime: campaignInfo.endTime,
-              minFollowersRequired: campaignInfo.minFollowersRequired,
-              status: campaignInfo.status,
-              groveContentURI: campaignInfo.groveContentURI,
-              contentHash: campaignInfo.contentHash,
-              availableLikeSlots: campaignInfo.availableLikeSlots,
-              availableCommentSlots: campaignInfo.availableCommentSlots,
-              availableQuoteSlots: campaignInfo.availableQuoteSlots,
-              claimedLikeSlots: campaignInfo.claimedLikeSlots,
-              claimedCommentSlots: campaignInfo.claimedCommentSlots,
-              claimedQuoteSlots: campaignInfo.claimedQuoteSlots,
-              likeReward: campaignInfo.likeReward,
-              commentReward: campaignInfo.commentReward,
-              quoteReward: campaignInfo.quoteReward,
+              ...campaignInfo,
+              id: i, // Add the campaign ID from the loop index
               metadata: campaignMetadata,
+              participantCount: Number(participantCount) // Add the participant count
             });
           }
         }
         
+        // Update state with fetched campaigns
         setCampaigns(campaignsData);
-        console.log(`Fetch completed - found ${campaignsData.length} campaigns`);
       } catch (err: any) {
         console.error("Error fetching campaigns:", err);
         setError(err.message || "Failed to load campaigns");
@@ -422,11 +419,7 @@ const Home = () => {
       console.log("Cleaning up polling interval");
       clearInterval(pollingInterval);
     };
-  }, [
-    getCampaignAdCount,
-    getCampaignInfo,
-    CONTRACT_ADDRESS,
-  ]);
+  }, [getCampaignAdCount, getCampaignInfo, getCampaignParticipantCount, CONTRACT_ADDRESS]);
 
   useEffect(() => {
     if (!sidebarRightIsVisible) {
@@ -566,6 +559,16 @@ const Home = () => {
                     <span className="text-gray-400">Min Followers: </span>
                     <span className="text-white">{campaign.minFollowersRequired}</span>
                   </div>
+                  <div className="col-span-2">
+                    <span className="text-gray-400">Participants: </span>
+                    <span className="text-white">
+                      {campaign.participantCount ? (
+                        <>{campaign.participantCount} {campaign.participantCount === 1 ? 'promotion' : 'promotions'}</>  
+                      ) : (
+                        'Be the first to promote this campaign'
+                      )}
+                    </span>
+                  </div>
                 </div>
                 
                 {/* Action buttons */}
@@ -626,5 +629,4 @@ const Home = () => {
     </div>
   );
 };
-
 export default Home;

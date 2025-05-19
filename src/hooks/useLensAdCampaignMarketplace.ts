@@ -209,9 +209,28 @@ export const useLensAdCampaignMarketplace = () => {
     }
   };
 
+  // Function to get the count of participants for a campaign
+  const getCampaignParticipantCount = async (campaignId: number) => {
+    try {
+      console.log(`Fetching participant count for campaign ${campaignId}`);
+      const count = await publicClient!.readContract({
+        ...lensAdCampaignConfig,
+        functionName: 'getCampaignParticipantCount',
+        args: [campaignId],
+      }) as bigint;
+      
+      console.log(`Retrieved participant count for campaign ${campaignId}: ${count}`);
+      return Number(count);
+    } catch (error) {
+      console.error('Error getting campaign participant count:', error);
+      return 0;
+    }
+  };
+  
   // Function to get all participants for a campaign directly from the contract
   const getCampaignParticipantAddresses = async (campaignId: number) => {
     try {
+      console.log(`Fetching participants for campaign ${campaignId} using direct contract call`);
       // Use the new contract function to get participants directly
       const participants = await publicClient!.readContract({
         ...lensAdCampaignConfig,
@@ -219,15 +238,28 @@ export const useLensAdCampaignMarketplace = () => {
         args: [campaignId],
       }) as `0x${string}`[];
       
-      console.log(`Retrieved ${participants.length} participants directly from contract for campaign ${campaignId}`);
+      console.log(`Retrieved ${participants.length} participants directly from contract for campaign ${campaignId}:`, participants);
+      
+      // Check if any of the participants have performed actions
+      if (participants.length > 0) {
+        for (const participant of participants) {
+          const hasPerformedAnyAction = await publicClient!.readContract({
+            ...lensAdCampaignConfig,
+            functionName: 'hasParticipated',
+            args: [campaignId, participant],
+          });
+          
+          console.log(`Participant ${participant} has participated in campaign ${campaignId}: ${hasPerformedAnyAction}`);
+        }
+      }
+      
       return participants;
     } catch (error) {
-      console.error('Error getting campaign participants from contract:', error);
-      // If the contract function fails or doesn't exist yet, throw the error to trigger fallback
-      throw error;
+      console.error('Error getting campaign participant addresses:', error);
+      throw error; // Rethrow to allow fallback to other methods
     }
   };
-  
+
   // Legacy function to get all participants for a campaign (fallback method)
   // This is a simplified approach that doesn't rely on event logs
   const getCampaignParticipants = async (campaignId: number) => {
@@ -1286,6 +1318,7 @@ export const useLensAdCampaignMarketplace = () => {
       getCampaignInfluencerActions,
       getCampaignParticipants,
       getCampaignParticipantAddresses,
+      getCampaignParticipantCount,
       hasPerformedAction,
       hasParticipated,
       hasClaimedReward,

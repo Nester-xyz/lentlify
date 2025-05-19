@@ -76,13 +76,15 @@ const CampaignPost: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [isLoadingActions, setIsLoadingActions] = useState(false);
   const [isLoadingParticipants, setIsLoadingParticipants] = useState(false);
+  const [isFetchingProfiles, setIsFetchingProfiles] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { sessionClient, isAuthorized, profile } = UseAuth();
   const [showActions, setShowActions] = useState(false);
+  const [participantProfiles, setParticipantProfiles] = useState<Record<string, any>>({});
 
   // Function to fetch all participants for a campaign
   const fetchCampaignParticipants = async (campaignId: number) => {
-    if (!campaignId) return;
+    if (campaignId == undefined) return;
     
     try {
       setIsLoadingParticipants(true);
@@ -108,11 +110,50 @@ const CampaignPost: React.FC = () => {
       // Fetch actions for all participants
       if (validParticipants.length > 0) {
         await fetchParticipantActions(campaignId, validParticipants);
+        // Fetch profiles for all participants
+        await fetchParticipantProfiles(validParticipants);
       }
     } catch (error) {
       console.error('Error fetching campaign participants:', error);
     } finally {
       setIsLoadingParticipants(false);
+    }
+  };
+  
+  // Function to fetch profiles for all participants
+  const fetchParticipantProfiles = async (participantAddresses: `0x${string}`[]) => {
+    try {
+      setIsFetchingProfiles(true);
+      
+      // Only fetch profiles for addresses we don't already have
+      const addressesToFetch = participantAddresses.filter(
+        (address) => !participantProfiles[address]
+      );
+      
+      if (addressesToFetch.length === 0) {
+        setIsFetchingProfiles(false);
+        return;
+      }
+      
+      const newProfiles: Record<string, any> = {};
+      for (const address of addressesToFetch) {
+        try {
+          const profile = await fetchLensProfileByAddress(address);
+          newProfiles[address] = profile;
+        } catch (e) {
+          console.error(`Failed to fetch profile for ${address}`, e);
+          newProfiles[address] = null;
+        }
+      }
+      
+      setParticipantProfiles((prevProfiles) => ({
+        ...prevProfiles,
+        ...newProfiles,
+      }));
+    } catch (error) {
+      console.error('Error fetching participant profiles:', error);
+    } finally {
+      setIsFetchingProfiles(false);
     }
   };
   
@@ -152,6 +193,11 @@ const CampaignPost: React.FC = () => {
       actions.sort((a, b) => Number(b.timestamp) - Number(a.timestamp));
       
       setInfluencerActions(actions);
+      
+      // Auto-show actions section if we found any actions
+      if (actions.length > 0) {
+        setShowActions(true);
+      }
     } catch (error) {
       console.error('Error fetching participant actions:', error);
     } finally {
@@ -661,63 +707,63 @@ const CampaignPost: React.FC = () => {
 
             </div>
             
-            {/* Influencer Actions Section */}
+            {/* Participants Section */}
             <div className="mt-6">
               <button 
                 onClick={() => setShowActions(!showActions)} 
                 className="flex items-center gap-2 bg-gray-700 hover:bg-gray-600 text-white font-medium py-2 px-4 rounded-md transition-colors"
               >
                 <FiUsers className="text-lg" />
-                {showActions ? 'Hide Influencer Actions' : 'Show Influencer Actions'}
+                {showActions ? 'Hide Participants' : 'Show Participants'}
               </button>
               
               {showActions && (
                 <div className="mt-4 bg-gray-700 p-4 rounded-md">
-                  <h3 className="text-lg font-medium text-white mb-3">Influencer Actions</h3>
+                  {/* Participants List */}
+                  <h3 className="text-lg font-medium text-white mb-3">Campaign Participants</h3>
                   
-                  {isLoadingActions ? (
+                  {isLoadingParticipants || isFetchingProfiles ? (
                     <div className="text-center py-4">
-                      <p className="text-gray-400">Loading actions...</p>
+                      <p className="text-gray-400">Loading participants...</p>
                     </div>
-                  ) : influencerActions.length > 0 ? (
-                    <div className="space-y-4">
-                      {influencerActions.map((action, index) => (
-                        <div key={index} className="border-b border-gray-600 pb-3 last:border-0 last:pb-0">
-                          <div className="flex items-center gap-2">
-                            {action.profile?.image && (
+                  ) : participants.length > 0 ? (
+                    <div className="space-y-3 mb-6">
+                      {participants.map((address, index) => {
+                        const profile = participantProfiles[address];
+                        return (
+                          <div key={index} className="bg-gray-800 p-3 rounded-md flex items-center">
+                            {profile && profile.image ? (
                               <img 
-                                src={action.profile.image} 
-                                alt={action.profile.name || 'Profile'} 
-                                className="w-8 h-8 rounded-full object-cover border border-gray-500"
+                                src={profile.image} 
+                                alt={profile.name || 'Profile'} 
+                                className="w-10 h-10 rounded-full object-cover border border-gray-600 mr-3"
                               />
+                            ) : (
+                              <div className="w-10 h-10 rounded-full bg-gray-700 flex items-center justify-center mr-3">
+                                <FiUser className="text-gray-400" />
+                              </div>
                             )}
                             <div>
                               <p className="text-white font-medium">
-                                {action.profile?.name || action.influencerAddress.substring(0, 6) + '...' + action.influencerAddress.substring(38)}
+                                {profile && profile.name ? profile.name : (
+                                  <span className="font-mono text-gray-300">
+                                    {address.substring(0, 6)}...{address.substring(38)}
+                                  </span>
+                                )}
                               </p>
-                              <p className="text-sm text-gray-400">
-                                {getActionTypeName(Number(action.action))} • {formatDistance(new Date(Number(action.timestamp) * 1000), new Date(), { addSuffix: true })}
-                              </p>
+                              {profile && profile.handle && (
+                                <p className="text-sm text-gray-400">
+                                  @{profile.handle}
+                                </p>
+                              )}
                             </div>
                           </div>
-                          
-                          {action.postString && (
-                            <div className="mt-2 pl-10">
-                              <p className="text-gray-300 text-sm">{action.postString}</p>
-                            </div>
-                          )}
-                          
-                          <div className="mt-2 pl-10 flex items-center">
-                            <span className={`text-xs px-2 py-1 rounded-full ${action.paid ? 'bg-green-900 text-green-300' : 'bg-yellow-900 text-yellow-300'}`}>
-                              {action.paid ? 'Reward Paid' : 'Reward Pending'}
-                            </span>
-                          </div>
-                        </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   ) : (
-                    <div className="text-center py-4">
-                      <p className="text-gray-400">No influencer actions found for this campaign</p>
+                    <div className="text-center py-4 mb-6">
+                      <p className="text-gray-400">No participants found for this campaign</p>
                     </div>
                   )}
                 </div>
