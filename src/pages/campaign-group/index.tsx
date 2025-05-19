@@ -17,6 +17,9 @@ import {
 import { storageClient, fetchLensProfileByAddress } from "@/lib/lens";
 import { UseAuth } from "@/context/auth/AuthContext";
 import { FaPlus } from "react-icons/fa";
+import { post, repost } from "@lens-protocol/client/actions";
+import { postId, uri } from "@lens-protocol/client";
+import { textOnly } from "@lens-protocol/metadata";
 
 // Helper function to get action type name
 const getActionTypeName = (actionType: number): string => {
@@ -78,6 +81,7 @@ interface CampaignGroupData {
 
 // Define the campaign data structure
 interface CampaignData {
+  id: number;
   campaignId: number;
   postId: string;
   sellerAddress: string;
@@ -154,11 +158,11 @@ const OwnerProfile: React.FC<OwnerProfileProps> = ({ address }) => {
 };
 
 const CampaignGroupDetail: React.FC = () => {
-  const { id } = useParams<{ id: string }>();
-  const navigate = useNavigate();
-  const { profile } = UseAuth();
-  const { getCampaignGroup, getGroupPosts, getCampaignInfo, CONTRACT_ADDRESS } =
-    useLensAdCampaignMarketplace();
+    const [isContractLoading, setIsContractLoading] = useState(false);
+    const { sessionClient, isAuthorized, profile } = UseAuth();
+    const { id } = useParams<{ id: string }>();
+    const navigate = useNavigate();
+    const { getCampaignGroup, getGroupPosts, getCampaignInfo, CONTRACT_ADDRESS, recordInfluencerAction } = useLensAdCampaignMarketplace();
 
   const [campaignGroup, setCampaignGroup] = useState<CampaignGroupData | null>(
     null
@@ -176,6 +180,216 @@ const CampaignGroupDetail: React.FC = () => {
       isMountedRef.current = false;
     };
   }, []);
+
+
+  const handleExecuteAction = async (campaign: CampaignData) => {
+    const address = profile?.address;
+    try {
+      if (!address) {
+        console.error("Wallet not connected");
+        return;
+      }
+
+      // Get the action type from campaign metadata
+      const actionType = campaign.metadata?.actionType || 0;
+      console.log(`Executing Lens action type: ${actionType} on post ${campaign.postId}`);
+      console.log("Campaign details:", campaign);
+      
+      // Debug auth status at the time of action execution
+      console.log('Auth status at execution time:', { isAuthorized, sessionClient, profile });
+      
+      // Check if session client is available and user is authorized
+      if (!sessionClient || !isAuthorized) {
+        console.error("No Lens session client available or not authorized. Please make sure you're logged in to Lens Protocol.");
+        alert("Please log in to Lens Protocol to perform this action.");
+        return;
+      }
+
+      setIsContractLoading(true);
+      let result;
+      
+      // Execute different actions based on the action type
+      switch (actionType) {
+        case 1: // MIRROR (Repost)
+          console.log(`Executing MIRROR action on post ${campaign.postId}`);
+          result = await repost(sessionClient, {
+            post: postId(campaign.postId),
+          });
+          
+          // Check if the mirror was successful
+          if (result && !('isErr' in result && result.isErr())) {
+            console.log('Mirror post created successfully!');
+            
+            // Record the action in the contract using Lens Protocol smart wallet
+            console.log('Recording action in contract using Lens Protocol smart wallet');
+            
+            try {
+              // Get content hash from campaign
+              const campaignContentHash = campaign.contentHash;
+              console.log('Content hash for campaign:', campaignContentHash);
+              
+              // Use the campaign ID from the campaign object
+              const campaignIdToUse = campaign.id;
+              console.log('Using campaign ID:', campaignIdToUse);
+              
+              // Call the recordInfluencerAction function which uses the Lens Protocol smart wallet
+              console.log('Using Lens Protocol smart wallet for contract interaction');
+              const contractResult = await recordInfluencerAction({
+                actionType: 1, // MIRROR
+                postId: campaign.postId,
+                campaignId: campaignIdToUse,
+                contentHash: campaignContentHash
+              });
+              
+              console.log('Lens Protocol smart wallet transaction result:', contractResult);
+              console.log('Contract interaction complete!');
+            } catch (contractError) {
+              // If the contract interaction fails, at least the mirror post was created
+              console.error('Error with Lens Protocol smart wallet transaction:', contractError);
+              console.log('But the mirror post was still created successfully');
+            }
+          } else {
+            console.error('Mirror post creation failed:', result);
+          }
+          break;
+          
+        case 2: // COMMENT
+          console.log(`Executing COMMENT action on post ${campaign.postId}`);
+          // Use comment text from metadata if available, otherwise use a default
+          const commentText = campaign.metadata?.commentText || "Great content! #lentlify";
+          
+          // Create proper metadata for the comment
+          const commentMetadata = textOnly({
+            content: commentText,
+          });
+          
+          // Upload the metadata to get a proper Lens URI
+          const commentUpload = await storageClient.uploadAsJson(commentMetadata);
+          console.log('Comment metadata uploaded with URI:', commentUpload.uri);
+          
+          // Post the comment using the generated URI
+          result = await post(sessionClient, {
+            contentUri: uri(commentUpload.uri),
+            commentOn: {
+              post: postId(campaign.postId),
+            }
+          });
+          
+          // Check if the comment was successful
+          if (result && !('isErr' in result && result.isErr())) {
+            console.log('Comment post created successfully!');
+            
+            // Record the action in the contract using Lens Protocol smart wallet
+            console.log('Recording action in contract using Lens Protocol smart wallet');
+            
+            try {
+              // Get content hash from campaign
+              const campaignContentHash = campaign.contentHash;
+              console.log('Content hash for campaign:', campaignContentHash);
+              
+              // Use the campaign ID from the campaign object
+              const campaignIdToUse = campaign.id;
+              console.log('Using campaign ID:', campaignIdToUse);
+              
+              // Call the recordInfluencerAction function which uses the Lens Protocol smart wallet
+              console.log('Using Lens Protocol smart wallet for contract interaction');
+              const contractResult = await recordInfluencerAction({
+                actionType: 2, // COMMENT
+                postId: campaign.postId,
+                campaignId: campaignIdToUse,
+                contentHash: campaignContentHash
+              });
+              
+              console.log('Lens Protocol smart wallet transaction result:', contractResult);
+              console.log('Contract interaction complete!');
+            } catch (contractError) {
+              // If the contract interaction fails, at least the comment post was created
+              console.error('Error with Lens Protocol smart wallet transaction:', contractError);
+              console.log('But the comment post was still created successfully');
+            }
+          } else {
+            console.error('Comment post creation failed:', result);
+          }
+          break;
+          
+        case 3: // QUOTE
+          console.log(`Executing QUOTE action on post ${campaign.postId}`);
+          // Use quote text from metadata if available, otherwise use a default
+          const quoteText = campaign.metadata?.quoteText || "Check out this interesting content! #lentlify";
+          
+          // Create proper metadata for the quote
+          const quoteMetadata = textOnly({
+            content: `${quoteText}\n\n#lentlify #campaign${campaign.id}`,
+          });
+          
+          // Upload the metadata to get a proper Lens URI
+          const quoteUpload = await storageClient.uploadAsJson(quoteMetadata);
+          console.log('Quote metadata uploaded with URI:', quoteUpload.uri);
+          
+          try {
+            console.log('Creating quote with Lens Protocol smart wallet integration');
+            
+            // Get content hash from campaign
+            const campaignContentHash = campaign.contentHash;
+            console.log('Content hash for campaign:', campaignContentHash);
+            
+            // Use the campaign ID from the campaign object
+            const campaignIdToUse = campaign.id;
+            console.log('Using campaign ID:', campaignIdToUse);
+            
+            // Step 1: Create a simple quote post
+            console.log('Step 1: Creating quote post');
+            result = await post(sessionClient, {
+              contentUri: uri(quoteUpload.uri),
+              quoteOf: {
+                post: postId(campaign.postId),
+              }
+            });
+            
+            console.log('Quote post result:', result);
+            
+            // Check if the quote was successful
+            if (result && !('isErr' in result && result.isErr())) {
+              console.log('Quote post created successfully!');
+              
+              // Step 2: Record the action in the contract using Lens Protocol smart wallet
+              console.log('Step 2: Recording action in contract using Lens Protocol smart wallet');
+              
+              try {
+                // Call the recordInfluencerAction function which now uses the Lens Protocol smart wallet
+                console.log('Using Lens Protocol smart wallet for contract interaction');
+                const contractResult = await recordInfluencerAction({
+                  actionType: 3, // QUOTE
+                  postId: campaign.postId,
+                  campaignId: campaignIdToUse,
+                  contentHash: campaignContentHash
+                });
+                
+                console.log('Lens Protocol smart wallet transaction result:', contractResult);
+                console.log('Contract interaction complete!');
+              } catch (contractError) {
+                // If the contract interaction fails, at least the quote post was created
+                console.error('Error with Lens Protocol smart wallet transaction:', contractError);
+                console.log('But the quote post was still created successfully');
+              }
+            } else {
+              console.error('Quote post creation failed:', result);
+            }  
+          } catch (quoteError) {
+            console.error('Error creating quote post:', quoteError);
+            throw quoteError;
+          }
+          break;
+          
+        default:
+          console.error('Unsupported action type:', actionType);
+      }
+    } catch (error) {
+      console.error('Error executing action:', error);
+    } finally {
+      setIsContractLoading(false);
+    }
+  };
 
   useEffect(() => {
     const fetchCampaignGroup = async () => {
@@ -293,6 +507,7 @@ const CampaignGroupDetail: React.FC = () => {
 
                 // Add campaign to the list with all the detailed information
                 campaignsList.push({
+                  id: Number(campaignId),
                   ...campaignInfo,
                   campaignId: Number(campaignId),
                   metadata: campaignMetadata,
@@ -496,10 +711,14 @@ const CampaignGroupDetail: React.FC = () => {
                     <h4 className="text-md font-medium text-white mb-2">
                       Campaigns in this group ({campaigns.length})
                     </h4>
-                    {campaigns.map((campaign) => (
+                    {campaigns
+                      .slice()
+                      .sort((a, b) => b.campaignId - a.campaignId)
+                      .map((campaign) => (
                       <div
                         key={campaign.campaignId}
-                        className="border border-gray-700 rounded-md p-4 hover:bg-gray-800 transition-colors"
+                        className="border border-gray-700 rounded-md p-4 hover:bg-gray-800 transition-colors cursor-pointer"
+                        onClick={() => navigate(`/campaign-post/${campaign.campaignId}`)}
                       >
                         {/* Campaign Header */}
                         <div className="flex justify-between items-start mb-2">
@@ -532,6 +751,7 @@ const CampaignGroupDetail: React.FC = () => {
                               target="_blank"
                               rel="noopener noreferrer"
                               className="text-blue-400 hover:underline flex items-center text-sm"
+                              onClick={(e) => e.stopPropagation()}
                             >
                               View Post on Lens
                               <FiExternalLink className="ml-1" />
@@ -723,31 +943,29 @@ const CampaignGroupDetail: React.FC = () => {
                             </div>
                           )}
 
-                          {/* Mirror Button */}
-                          {campaign.status === 1 &&
-                            campaign.availableLikeSlots &&
-                            Number(campaign.availableLikeSlots) > 0 && (
-                              <button
-                                className="w-full mt-2 bg-gradient-to-r from-green-600 to-green-800 hover:from-green-700 hover:to-green-900 text-white font-medium py-2 px-4 rounded-md flex items-center justify-center transition-colors"
-                                onClick={() =>
-                                  window.open(
-                                    campaign.metadata?.link || "#",
-                                    "_blank"
-                                  )
-                                }
-                              >
-                                <FiRepeat className="mr-2" />
-                                {
-                                  ActionType[campaign.metadata?.actionType || 0]
-                                }{" "}
-                                {campaign.likeReward
-                                  ? (
-                                      Number(campaign.likeReward) / 1e18
-                                    ).toFixed(4)
-                                  : "0"}{" "}
-                                GRASS
-                              </button>
-                            )}
+                          {/* Action Button */}
+                          {campaign.status === 1 && (
+                            <button 
+                              className={`w-full mt-2 ${campaign.endTime && Number(campaign.endTime) * 1000 < Date.now() 
+                                ? 'bg-gray-600 cursor-not-allowed' 
+                                : campaign.availableLikeSlots && Number(campaign.availableLikeSlots) > 0 
+                                  ? 'bg-gradient-to-r from-green-600 to-green-800 hover:from-green-700 hover:to-green-900' 
+                                  : 'bg-gray-600 cursor-not-allowed'} text-white font-medium py-2 px-4 rounded-md flex items-center justify-center transition-colors`}
+                              onClick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                window.open(campaign.metadata?.link || "#", "_blank");
+                              }}
+                              disabled={Boolean(!(campaign.availableLikeSlots && Number(campaign.availableLikeSlots) > 0) || (campaign.endTime && Number(campaign.endTime) * 1000 < Date.now()))}
+                            >
+                              <FiRepeat className="mr-2" />
+                              {campaign.endTime && Number(campaign.endTime) * 1000 < Date.now()
+                                ? 'Ended'
+                                : campaign.availableLikeSlots && Number(campaign.availableLikeSlots) > 0 
+                                  ? `${ActionType[campaign.metadata?.actionType||0]} for ${campaign.likeReward && BigInt(campaign.likeReward) > 0 ? (Number(BigInt(campaign.likeReward)) / 1e18).toFixed(4) + ' GRASS' : 'Completed'}` 
+                                  : 'Campaign Full'}
+                            </button>
+                          )}
                         </div>
                       </div>
                     ))}
