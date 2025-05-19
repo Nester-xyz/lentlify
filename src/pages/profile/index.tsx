@@ -1,7 +1,7 @@
 import { UseAuth } from "@/context/auth/AuthContext";
 import { useEffect, useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { useLensAdCampaignMarketplace } from "@/hooks/useLensAdCampaignMarketplace";
+import { useLensAdCampaignMarketplace, ActionType } from "@/hooks/useLensAdCampaignMarketplace";
 import { useAccount } from "wagmi";
 import { FaPlus } from "react-icons/fa";
 import { FiExternalLink } from "react-icons/fi";
@@ -72,15 +72,37 @@ interface CampaignGroupContract {
   postCampaignIds: bigint[];
 }
 
+// Define the user interaction interface
+interface UserInteraction {
+  campaignId: number;
+  postId: string;
+  actionType: ActionType;
+  hasClaimedReward: boolean;
+  rewardAmount: bigint;
+  endTime: bigint;
+  rewardClaimableTime?: bigint; // Time when rewards become claimable (after waiting period)
+  rewardClaimEndTime?: bigint; // Time when reward claiming period ends
+  metadata?: {
+    title?: string;
+    description?: string;
+    image?: string;
+  };
+}
+
 const Profile = () => {
   const { profile } = UseAuth();
   const navigate = useNavigate();
-  const { address } = useAccount();
+  const [activeTab, setActiveTab] = useState<'campaigns' | 'activities'>('campaigns');
   const {
     getSellerCampaignGroups,
     getCampaignGroup,
     getCampaign,
     getGroupPosts,
+    getCampaignInfo,
+    getCampaignAdCount,
+    hasParticipated,
+    hasClaimedReward,
+    claimReward,
     CONTRACT_ADDRESS,
   } = useLensAdCampaignMarketplace();
 
@@ -88,17 +110,205 @@ const Profile = () => {
   const [campaignGroups, setCampaignGroups] = useState<CampaignGroupData[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  
+  // State for user interactions
+  const [userInteractions, setUserInteractions] = useState<UserInteraction[]>([]);
+  const [isInteractionsLoading, setIsInteractionsLoading] = useState(true);
+  const [interactionsError, setInteractionsError] = useState<string | null>(null);
 
   // Refs to track loading and fetch timing
   const initialLoadRef = useRef(true);
   const lastFetchTimeRef = useRef<number>(0);
+  const interactionsLoadRef = useRef(true);
+  const lastInteractionsFetchTimeRef = useRef<number>(0);
 
+  // Function to fetch user interactions with campaigns
+  const fetchUserInteractions = async () => {
+    const address = profile?.address
+    try {
+      // Show loading indicator only on first load
+      if (interactionsLoadRef.current) {
+        setIsInteractionsLoading(true);
+      }
+
+      // Get current time to check if we should fetch
+      const now = Date.now();
+      const timeSinceLastFetch = now - lastInteractionsFetchTimeRef.current;
+
+      // Only fetch if this is the first load or if enough time has passed
+      if (lastInteractionsFetchTimeRef.current > 0 && timeSinceLastFetch < 30000) {
+        console.log(
+          `Too soon to fetch interactions again (${Math.round(
+            timeSinceLastFetch / 1000
+          )}s since last fetch)`
+        );
+        return;
+      }
+
+      // Update last fetch time
+      lastInteractionsFetchTimeRef.current = now;
+      
+      if (!address) {
+        console.log("Wallet address not available yet, skipping interactions fetch");
+        setIsInteractionsLoading(false);
+        return;
+      }
+      
+      console.log(`Fetching interactions for address: ${address}`);
+      
+      // Get total campaign count to iterate through all campaigns
+      const totalCampaigns = await getCampaignAdCount();
+      console.log(`Total campaigns to check: ${totalCampaigns}`);
+      
+      if (!totalCampaigns) {
+        console.log("No campaigns found");
+        setUserInteractions([]);
+        setIsInteractionsLoading(false);
+        return;
+      }
+      
+      const interactions: UserInteraction[] = [];
+      
+      // Check each campaign to see if the user has participated
+      for (let i = 0; i < Number(totalCampaigns); i++) {
+        try {
+          // Check if user has participated in this campaign
+          console.log("checking i and address", i, address)
+          // Ensure address is properly formatted with 0x prefix
+          const formattedAddress = address.startsWith('0x') ? address as `0x${string}` : `0x${address}` as `0x${string}`;
+          const participated = await hasParticipated(i, formattedAddress);
+          
+          if (participated) {
+            console.log(`User has participated in campaign ${i}`);
+            
+            // Get campaign details
+            const campaignInfo = await getCampaignInfo(i);
+            
+            if (campaignInfo) {
+              // Check if user has claimed reward
+              const claimed = await hasClaimedReward(i, formattedAddress);
+              
+              // Fetch campaign metadata if available
+              let campaignMetadata: any = {};
+              
+              if (campaignInfo.groveContentURI) {
+                try {
+                  let fetchUrl = campaignInfo.groveContentURI;
+                  
+                  // If it's a lens:// URL, use storageClient to resolve it
+                  if (fetchUrl.startsWith("lens://")) {
+                    try {
+                      // Use storageClient to resolve the lens:// URI to an HTTPS URL
+                      fetchUrl = storageClient.resolve(fetchUrl);
+                    } catch (resolveErr) {
+                      console.error(`Error resolving lens URI for campaign ${i}:`, resolveErr);
+                    }
+                  }
+                  
+                  // Fetch metadata from the resolved URL
+                  const metadataResponse = await fetch(fetchUrl);
+                  if (metadataResponse.ok) {
+                    campaignMetadata = await metadataResponse.json();
+                  }
+                } catch (err) {
+                  console.error(`Error fetching metadata for campaign ${i}:`, err);
+                }
+              }
+              
+              // Add to interactions list
+              // Determine action type - in the contract it might be stored in a different field
+              // Try to find it in different possible locations
+              let actionTypeValue = 0;
+              
+              // Check different possible locations where actionType might be stored
+              if ('actionType' in campaignInfo) {
+                actionTypeValue = Number(campaignInfo.actionType || 0);
+              } else if (campaignMetadata && 'actionType' in campaignMetadata) {
+                actionTypeValue = Number(campaignMetadata.actionType || 0);
+              }
+              
+              // Log the campaign info to see what timing data is available
+              console.log('Campaign info for timing calculation:', campaignInfo);
+              
+              // Use the actual reward claimable time from the campaign data if available
+              // This is the time when rewards become claimable after the campaign ends
+              let calculatedRewardClaimableTime = campaignInfo.endTime;
+              
+              // Check if there's a specific reward claimable time in the campaign data
+              // Different contracts might store this information in different fields
+              try {
+                // Try to access different possible fields where the reward claimable time might be stored
+                if ('rewardClaimableTime' in campaignInfo) {
+                  calculatedRewardClaimableTime = (campaignInfo as any).rewardClaimableTime as bigint;
+                } else if ('adDisplayTimePeriod' in campaignInfo) {
+                  const adDisplayTimePeriod = (campaignInfo as any).adDisplayTimePeriod;
+                  if (adDisplayTimePeriod && typeof adDisplayTimePeriod === 'object' && 'startTime' in adDisplayTimePeriod) {
+                    calculatedRewardClaimableTime = adDisplayTimePeriod.startTime as bigint;
+                  }
+                }
+              } catch (error) {
+                console.error('Error accessing campaign timing data:', error);
+              }
+              
+              // If the calculated time is less than the end time, use the end time plus a waiting period
+              if (calculatedRewardClaimableTime <= campaignInfo.endTime) {
+                calculatedRewardClaimableTime = campaignInfo.endTime + BigInt(4 * 60); // 4 minutes waiting period
+              }
+              
+              interactions.push({
+                campaignId: i,
+                postId: campaignInfo.postId,
+                actionType: actionTypeValue as ActionType,
+                hasClaimedReward: !!claimed, // Ensure boolean type
+                // Use the appropriate reward amount based on action type
+                rewardAmount: actionTypeValue === ActionType.COMMENT ? campaignInfo.commentReward : 
+                              actionTypeValue === ActionType.QUOTE ? campaignInfo.quoteReward : 
+                              campaignInfo.likeReward,
+                endTime: campaignInfo.endTime,
+                // Set the reward claimable time to 4 minutes after campaign ends
+                rewardClaimableTime: calculatedRewardClaimableTime,
+                // We no longer need a separate end time since rewards can be claimed indefinitely
+                rewardClaimEndTime: calculatedRewardClaimableTime,
+                metadata: campaignMetadata
+              });
+            }
+          }
+        } catch (err) {
+          console.error(`Error checking participation for campaign ${i}:`, err);
+        }
+      }
+      
+      // Sort interactions by campaign ID (most recent first)
+      interactions.sort((a, b) => b.campaignId - a.campaignId);
+      
+      // Update state with fetched interactions
+      setUserInteractions(interactions);
+      setInteractionsError(null);
+    } catch (err: any) {
+      console.error("Error fetching user interactions:", err);
+      setInteractionsError(err.message || "Failed to load interactions");
+    } finally {
+      setIsInteractionsLoading(false);
+      interactionsLoadRef.current = false; // Mark initial load as complete
+    }
+  };
+  
+  // Fetch user interactions on component mount
+  useEffect(() => {
+    const address = profile?.address
+    if (!address) {
+      return;
+    }
+    fetchUserInteractions();
+  }, [profile?.address, CONTRACT_ADDRESS]);
+  
   if (!profile) {
     return <div>Loading profile...</div>;
   }
 
   // Fetch campaign groups for the seller (current user)
   useEffect(() => {
+    const address = profile.address
     // Skip if wallet address is not available
     if (!address) {
       console.log("Wallet address not available yet, skipping fetch");
@@ -109,6 +319,7 @@ const Profile = () => {
     console.log("Contract address:", CONTRACT_ADDRESS);
 
     const fetchCampaignGroups = async () => {
+      const formattedAddress = profile.address.startsWith('0x') ? profile.address as `0x${string}` : `0x${profile.address}` as `0x${string}`;
       try {
         // Show loading indicator only on first load
         if (initialLoadRef.current) {
@@ -131,11 +342,11 @@ const Profile = () => {
 
         // Update last fetch time
         lastFetchTimeRef.current = now;
-        console.log(`Fetching campaign groups for address: ${address}`);
+        console.log(`Fetching campaign groups for address: ${formattedAddress}`);
 
         // Get all group IDs for the current user
         const groupIds = (await getSellerCampaignGroups(
-          address
+          formattedAddress
         )) as unknown as bigint[];
         console.log("Group IDs:", groupIds);
 
@@ -307,7 +518,7 @@ const Profile = () => {
       clearInterval(pollingInterval);
     };
   }, [
-    address,
+    profile.address,
     getCampaignGroup,
     getSellerCampaignGroups,
     getGroupPosts,
@@ -390,8 +601,26 @@ const Profile = () => {
           </div>
         </div>
 
-        {/* Loading state */}
-        {isLoading && (
+        {/* Tab Navigation */}
+        <div className="flex border-b border-gray-700 mb-8 mt-8">
+          <button
+            className={`px-6 py-3 font-medium text-lg ${activeTab === 'campaigns' ? 'text-blue-500 border-b-2 border-blue-500' : 'text-gray-400 hover:text-gray-300'}`}
+            onClick={() => setActiveTab('campaigns')}
+          >
+            Your Campaigns
+          </button>
+          <button
+            className={`px-6 py-3 font-medium text-lg ${activeTab === 'activities' ? 'text-blue-500 border-b-2 border-blue-500' : 'text-gray-400 hover:text-gray-300'}`}
+            onClick={() => setActiveTab('activities')}
+          >
+            Activities
+          </button>
+        </div>
+
+        {/* Campaign Content - only visible when campaigns tab is active */}
+        <div className={activeTab === 'campaigns' ? 'block' : 'hidden'}>
+          {/* Loading state */}
+          {isLoading && (
           <div className="flex justify-center items-center py-12">
             <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
           </div>
@@ -422,11 +651,173 @@ const Profile = () => {
             </button>
           </div>
         )}
-
-        {/* Campaign groups list */}
-        <div className="text-2xl font-bold mb-6 text-slate-500">
-          Your Campaigns
         </div>
+
+        {/* User Interactions Section - only visible when activities tab is active */}
+        <div className={`mb-12 ${activeTab === 'activities' ? 'block' : 'hidden'}`}>
+          <div className="text-2xl font-bold mb-6 text-slate-500">
+            Your Campaign Interactions
+          </div>
+          
+          {/* Loading state */}
+          {isInteractionsLoading && (
+            <div className="flex justify-center items-center py-12">
+              <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+            </div>
+          )}
+          
+          {/* Error state */}
+          {interactionsError && (
+            <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-6">
+              <strong className="font-bold">Error: </strong>
+              <span className="block sm:inline">{interactionsError}</span>
+            </div>
+          )}
+          
+          {/* Empty state */}
+          {!isInteractionsLoading && !interactionsError && userInteractions.length === 0 && (
+            <div className="text-center py-8 bg-gray-800 rounded-lg">
+              <h3 className="text-xl font-medium text-white mb-2">
+                No campaign interactions found
+              </h3>
+              <p className="text-gray-400 mb-6">
+                Participate in campaigns to see your interactions here
+              </p>
+              <button
+                onClick={() => navigate("/")}
+                className="px-6 py-3 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition"
+              >
+                Browse Campaigns
+              </button>
+            </div>
+          )}
+          
+          {/* Interactions list */}
+          {!isInteractionsLoading && !interactionsError && userInteractions.length > 0 && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {userInteractions.map((interaction) => (
+                <div
+                  key={`${interaction.campaignId}`}
+                  className="bg-gray-800 rounded-lg overflow-hidden border border-gray-700 hover:border-blue-500 transition p-4"
+                >
+                  <div className="flex justify-between items-start mb-3">
+                    <div>
+                      <h3 className="text-lg font-medium text-white">
+                        {interaction.metadata?.title || `Campaign #${interaction.campaignId}`}
+                      </h3>
+                      <p className="text-sm text-gray-400">
+                        Action: {ActionType[interaction.actionType]}
+                      </p>
+                    </div>
+                    <div className="bg-blue-900 text-blue-200 text-xs px-2 py-1 rounded-full">
+                      {interaction.hasClaimedReward ? 'Reward Claimed' : 'Participated'}
+                    </div>
+                  </div>
+                  
+                  <div className="text-gray-300 mb-4 line-clamp-2">
+                    {interaction.metadata?.description || "No description available"}
+                  </div>
+                  
+                  {/* Campaign end time */}
+                  <div className="text-gray-400 text-sm mt-2">
+                    Campaign ends: {new Date(Number(interaction.endTime) * 1000).toLocaleString()}
+                  </div>
+                  
+                  {/* Reward amount */}
+                  <div className="mt-4">
+                    <div className="text-green-400 font-medium">
+                      Reward: {(Number(interaction.rewardAmount) / 1e18).toFixed(4)} ETH
+                    </div>
+                  </div>
+                  
+                  {/* Campaign timing information */}
+                  <div className="text-center py-2 my-2 rounded-md">
+                    {!interaction.hasClaimedReward && interaction.rewardClaimableTime ? (
+                      <div className="space-y-2">
+                        {/* Campaign active phase */}
+                        {Date.now() < Number(interaction.endTime) * 1000 ? (
+                          <div className="text-blue-400 font-medium bg-blue-900 bg-opacity-30 p-2 rounded">
+                            <div>Campaign active for {Math.ceil((Number(interaction.endTime) * 1000 - Date.now()) / 60000)} more minutes</div>
+                            <div className="text-xs mt-1">
+                              After campaign ends, wait {Math.ceil((Number(interaction.rewardClaimableTime) * 1000 - Number(interaction.endTime) * 1000) / 60000)} minutes to claim rewards
+                            </div>
+                          </div>
+                        ) : Date.now() < Number(interaction.rewardClaimableTime) * 1000 ? (
+                          <div className="text-yellow-400 font-medium bg-yellow-900 bg-opacity-30 p-2 rounded">
+                            <div>Campaign ended. Wait time to claim: {Math.ceil((Number(interaction.rewardClaimableTime) * 1000 - Date.now()) / 60000)} minutes</div>
+                          </div>
+                        ) : (
+                          <div className="text-green-400 font-medium bg-green-900 bg-opacity-30 p-2 rounded">
+                            <div>Reward is now claimable!</div>
+                            <div className="text-xs mt-1">
+                              Rewards can be claimed at any time
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    ) : null}
+                  </div>
+                  
+                  {/* Claim button */}
+                  <div className="flex justify-end mt-2">
+                    
+                    {!interaction.hasClaimedReward ? (
+                      <button 
+                        className={`px-4 py-2 ${interaction.rewardClaimableTime && Date.now() >= Number(interaction.rewardClaimableTime) * 1000 ? 'bg-green-600 hover:bg-green-700' : 'bg-gray-600 cursor-not-allowed'} text-white rounded-md transition flex items-center`}
+                        onClick={async (e) => {
+                          e.stopPropagation();
+                          console.log('Claim button clicked for campaign:', interaction.campaignId);
+                          console.log('Current time:', new Date().toISOString());
+                          console.log('Reward claimable time:', interaction.rewardClaimableTime ? new Date(Number(interaction.rewardClaimableTime) * 1000).toISOString() : 'Not set');
+                          console.log('Is claimable?', interaction.rewardClaimableTime && Date.now() >= Number(interaction.rewardClaimableTime) * 1000);
+                          
+                          // Only allow claiming if we're past the reward claimable time
+                          if (interaction.rewardClaimableTime && Date.now() >= Number(interaction.rewardClaimableTime) * 1000) {
+                            try {
+                              console.log('Attempting to claim reward for campaign:', interaction.campaignId);
+                              // Use smart wallet (true) instead of direct contract call
+                              const result = await claimReward(interaction.campaignId, true);
+                              console.log('Claim reward result:', result);
+                            } catch (error) {
+                              console.error('Error claiming reward:', error);
+                              alert('Error claiming reward: ' + (error instanceof Error ? error.message : String(error)));
+                            }
+                          } else {
+                            console.log('Cannot claim reward yet - not past claimable time');
+                          }
+                        }}
+                        disabled={!interaction.rewardClaimableTime || Date.now() < Number(interaction.rewardClaimableTime) * 1000}
+                      >
+                        {!interaction.rewardClaimableTime ? 'Loading...' :
+                          Date.now() < Number(interaction.endTime) * 1000 ? 'Campaign Active' :
+                          Date.now() < Number(interaction.rewardClaimableTime) * 1000 ? 'Waiting Period' :
+                          'Claim Reward'}
+                      </button>
+                    ) : (
+                      <div className="text-gray-400">Reward Claimed</div>
+                    )}
+                  </div>
+                  
+                  {/* View details button */}
+                  <div className="mt-3 text-center">
+                    <button 
+                      className="text-blue-400 hover:text-blue-300 transition"
+                      onClick={() => navigate(`/campaign-post/${interaction.campaignId}`)}
+                    >
+                      View Campaign Details
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+        
+        {/* Campaign groups list - only shown when campaigns tab is active */}
+        <div className={`${activeTab === 'campaigns' ? 'block' : 'hidden'}`}>
+          <div className="text-2xl font-bold mb-6 text-slate-500">
+            Your Campaigns
+          </div>
         <div className="space-y-8">
           {campaignGroups.map((group) => (
             <div
@@ -468,7 +859,7 @@ const Profile = () => {
                     {group.metadata?.name || `Campaign Group #${group.id}`}
                   </h2>
                   <p className="text-gray-400 text-sm mb-2 truncate">
-                    {address}
+                    {profile.address}
                   </p>
                   <p className="text-gray-300 mb-4">
                     {group.metadata?.description || "No description available"}
@@ -493,6 +884,7 @@ const Profile = () => {
           ))}
         </div>
       </div>
+    </div>
     </div>
   );
 };

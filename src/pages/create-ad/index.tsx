@@ -103,13 +103,20 @@ const createAd: React.FC = () => {
           }
 
           const now = Math.floor(Date.now() / 1000);
-          const durationInSeconds = parseInt(data.duration) * 24 * 60 * 60;
-          const rewardClaimPeriodInSeconds =
-            parseInt(data.rewardClaimPeriod) * 24 * 60 * 60;
+          // For testing: 3 minutes campaign active duration
+          const durationInSeconds = 4 * 60;
+          // For testing: 2 minutes inactive period + 2 minutes reward display time
+          const inactivePeriod = 4 * 60;
+          const rewardDisplayTime = 4 * 60;
 
-          const futureStartTime = now + 60;
+          // Start campaign after 10 seconds
+          const futureStartTime = now + 10;
+          // Campaign active for 3 minutes
           const futureEndTime = futureStartTime + durationInSeconds;
-          const futureRewardClaimableTime = futureEndTime + 60;
+          // 2 minutes inactive period before reward is displayed
+          const futureRewardClaimableTime = futureEndTime + inactivePeriod;
+          // Add reward display time to the reward claimable time
+          const futureRewardClaimEndTime = futureRewardClaimableTime + rewardDisplayTime;
 
           const amountPool = BigInt(parseFloat(data.amount) * 1e18);
           const minFollowersRequired = parseInt(data.minFollowers);
@@ -159,7 +166,7 @@ const createAd: React.FC = () => {
                 futureStartTime,
                 futureEndTime,
                 futureRewardClaimableTime,
-                futureRewardClaimableTime + rewardClaimPeriodInSeconds,
+                futureRewardClaimEndTime, // Use the new reward claim end time
                 groveUri,
                 contentHash,
                 false,

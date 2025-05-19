@@ -988,20 +988,91 @@ export const useLensAdCampaignMarketplace = () => {
   // Claim reward
   const claimReward = async (campaignId: number, useSmartWallet = false) => {
     try {
+      console.log("Attempting to claim reward for campaign ID:", campaignId);
+      
+      if (!profile?.address) {
+        throw new Error('No wallet address available. Please connect your wallet.');
+      }
+      
+      // Format the address properly
+      const formattedAddress = profile.address.startsWith('0x') ? profile.address as `0x${string}` : `0x${profile.address}` as `0x${string}`;
+      
+      // Check if the user has participated in the campaign
+      const participated = await hasParticipated(campaignId, formattedAddress);
+      if (!participated) {
+        throw new Error(`You have not participated in campaign ${campaignId}. You must interact with the campaign post before claiming a reward.`);
+      }
+      
+      // Check if the user has already claimed the reward
+      const claimed = await hasClaimedReward(campaignId, formattedAddress);
+      if (claimed) {
+        throw new Error(`You have already claimed the reward for campaign ${campaignId}.`);
+      }
+      
+      // Get the campaign info to determine the action type
+      const campaignInfo = await getCampaignInfo(campaignId);
+      if (!campaignInfo) {
+        throw new Error(`Campaign info not found for ID: ${campaignId}`);
+      }
+      
+      // Determine the action type from the campaign info
+      // The action type might be stored in different fields depending on the contract version
+      let actionType = 0; // Default to 0 (MIRROR)
+      
+      // Try to get the action type from different possible fields
+      if ('actionType' in (campaignInfo as any)) {
+        actionType = Number((campaignInfo as any).actionType) || 0;
+      }
+      
+      // Get the Lens Feed contract address
+      // This is needed as the third parameter for the claimReward function
+      const feedContractAddress = '0x4d97287FF1A0e030cA4604EcDa9be355dd8A8BaC'; // Lens Feed contract address on Sepolia
+      
+      console.log('Claiming reward with params:', {
+        campaignId,
+        actionType,
+        feedContractAddress,
+        userAddress: formattedAddress,
+        hasParticipated: participated,
+        hasAlreadyClaimed: claimed
+      });
+      
+      // For debugging, log the campaign info
+      console.log('Full campaign info for debugging:', campaignInfo);
+      
+      // Try to extract the action type from the campaign info
+      // Since the actionType property might not exist directly on the campaignInfo object,
+      // we need to use type assertions and fallbacks
+      let campaignActionType = actionType; // Default to the previously determined action type
+      console.log('Using action type for claim:', campaignActionType);
+      
       if (useSmartWallet && profile?.address) {
         console.log('Using Lens Account for claimReward');
-        return executeLensTransaction({
-          targetFunction: 'claimReward',
-          args: [campaignId],
-        });
+        try {
+          // Try with higher gas limit for smart wallet transaction
+          return executeLensTransaction({
+            targetFunction: 'claimReward',
+            args: [campaignId, campaignActionType, feedContractAddress],
+            value: 0n, // No ETH value needed for claiming
+          });
+        } catch (error) {
+          console.error('Smart wallet transaction failed, trying with direct call:', error);
+          // If smart wallet fails, try direct call as fallback
+          return writeClaimReward({
+            ...lensAdCampaignConfig,
+            functionName: 'claimReward',
+            args: [campaignId, campaignActionType, feedContractAddress],
+            gas: 500000n, // Increase gas limit
+          });
+        }
       }
 
       console.log('Using direct contract call for claimReward');
       return writeClaimReward({
         ...lensAdCampaignConfig,
         functionName: 'claimReward',
-        args: [campaignId],
-        gas: 300000n,
+        args: [campaignId, campaignActionType, feedContractAddress],
+        gas: 500000n, // Increase gas limit to handle complex operations
       });
     } catch (error: any) {
       console.error('Error claiming reward:', error);
