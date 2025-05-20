@@ -70,6 +70,7 @@ struct InfluencerAction {
     uint256 timestamp;
     bool paid;
     string postString;
+    uint256 postIdAsUint;
 }
 
 // New grouping mechanism

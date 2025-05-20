@@ -459,6 +459,11 @@ export const abi = [
         "internalType": "string",
         "name": "postString",
         "type": "string"
+      },
+      {
+        "internalType": "uint256",
+        "name": "postIdAsUint",
+        "type": "uint256"
       }
     ],
     "stateMutability": "view",
@@ -896,6 +901,11 @@ export const abi = [
         "internalType": "string",
         "name": "postString",
         "type": "string"
+      },
+      {
+        "internalType": "uint256",
+        "name": "postIdAsUint",
+        "type": "uint256"
       }
     ],
     "name": "executeDirectAction",
@@ -1051,6 +1061,16 @@ export const abi = [
       {
         "internalType": "uint256",
         "name": "quoteReward",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "rewardClaimableTime",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "rewardTimeEnd",
         "type": "uint256"
       }
     ],
@@ -1533,7 +1553,7 @@ export const abi = [
     ],
     "name": "updateCampaignPrice",
     "outputs": [],
-    "stateMutability": "nonpayable",
+    "stateMutability": "payable",
     "type": "function"
   },
   {
@@ -1551,7 +1571,7 @@ export const abi = [
     ],
     "name": "updateCampaignSlots",
     "outputs": [],
-    "stateMutability": "nonpayable",
+    "stateMutability": "payable",
     "type": "function"
   },
   {

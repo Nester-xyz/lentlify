@@ -3169,6 +3169,16 @@ __metadata:
   languageName: node
   linkType: hard
 
+"cors-anywhere@npm:^0.4.4":
+  version: 0.4.4
+  resolution: "cors-anywhere@npm:0.4.4"
+  dependencies:
+    http-proxy: 1.11.1
+    proxy-from-env: 0.0.1
+  checksum: 02e87cbebafc371c1d50535b6282feb0ae4b576500a6e3b07cd9b5f7fcd24f6bf4f6edbd3eef3eb730365f109475a1ec33ea116931769762646e78950d4a8696
+  languageName: node
+  linkType: hard
+
 "crc-32@npm:^1.2.0":
   version: 1.2.2
   resolution: "crc-32@npm:1.2.2"
@@ -3816,6 +3826,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"eventemitter3@npm:1.x.x":
+  version: 1.2.0
+  resolution: "eventemitter3@npm:1.2.0"
+  checksum: 1ce3c91340f5038bd611c31a32c69167ccc598049a6844f58400583b4d70f5c0c2d13a201c763624f81de461498fe2767d0bfadcb2c0c417e37556a481b00c1d
+  languageName: node
+  linkType: hard
+
 "eventemitter3@npm:5.0.1, eventemitter3@npm:^5.0.1":
   version: 5.0.1
   resolution: "eventemitter3@npm:5.0.1"
@@ -4316,6 +4333,16 @@ __metadata:
   languageName: node
   linkType: hard
 
+"http-proxy@npm:1.11.1":
+  version: 1.11.1
+  resolution: "http-proxy@npm:1.11.1"
+  dependencies:
+    eventemitter3: 1.x.x
+    requires-port: 0.x.x
+  checksum: 2bd44ed6f45d49de125862df3818edd64fa6bcdc54baa509c4d3665e19dd3c4a95b80de3e7d9550b95b920c5e235564ff21eb9aff7f74b4df81892555d096ec7
+  languageName: node
+  linkType: hard
+
 "https-proxy-agent@npm:^7.0.1":
   version: 7.0.6
   resolution: "https-proxy-agent@npm:7.0.6"
@@ -4716,6 +4743,7 @@ __metadata:
     class-variance-authority: ^0.7.1
     clsx: ^2.1.1
     connectkit: ^1.9.0
+    cors-anywhere: ^0.4.4
     eslint: ^9.25.0
     eslint-plugin-react-hooks: ^5.2.0
     eslint-plugin-react-refresh: ^0.4.19
@@ -5625,6 +5653,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"proxy-from-env@npm:0.0.1":
+  version: 0.0.1
+  resolution: "proxy-from-env@npm:0.0.1"
+  checksum: 801947dd787b417528dee516599bfa4a66ab8508025ee7fe31ce8dddffbd2571a2c113c8fff4a794886fb68a75316af97559f87c0f86fcd59399a300f2bfe6a7
+  languageName: node
+  linkType: hard
+
 "pump@npm:^3.0.0":
   version: 3.0.2
   resolution: "pump@npm:3.0.2"
@@ -5860,6 +5895,13 @@ __metadata:
   version: 2.0.0
   resolution: "require-main-filename@npm:2.0.0"
   checksum: e9e294695fea08b076457e9ddff854e81bffbe248ed34c1eec348b7abbd22a0d02e8d75506559e2265e96978f3c4720bd77a6dad84755de8162b357eb6c778c7
+  languageName: node
+  linkType: hard
+
+"requires-port@npm:0.x.x":
+  version: 0.0.1
+  resolution: "requires-port@npm:0.0.1"
+  checksum: 36a3414a76ff1dd4f7df519c2315e7af3eb54312d764319cf9aea4e0ab3a084772ff01edb46487c04fa5c9abe5de627e8eeb500d350b9b21407b94fe346358e2
   languageName: node
   linkType: hard
 
@@ -6726,28 +6768,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"viem@npm:>=2.23.11, viem@npm:^2.1.1, viem@npm:^2.29.2":
-  version: 2.29.4
-  resolution: "viem@npm:2.29.4"
-  dependencies:
-    "@noble/curves": 1.8.2
-    "@noble/hashes": 1.7.2
-    "@scure/bip32": 1.6.2
-    "@scure/bip39": 1.5.4
-    abitype: 1.0.8
-    isows: 1.0.7
-    ox: 0.6.9
-    ws: 8.18.1
-  peerDependencies:
-    typescript: ">=5.0.4"
-  peerDependenciesMeta:
-    typescript:
-      optional: true
-  checksum: a78f6282581ab624ca543599862323bc3bd5ba8a7c681205dec85f7b1d34453c40fa4e9b70bafdefc2810bd8b0f73e86beccc92ecc5e98404f057a6dd91a0972
-  languageName: node
-  linkType: hard
-
-"viem@npm:latest":
+"viem@npm:>=2.23.11, viem@npm:^2.1.1, viem@npm:latest":
   version: 2.29.4
   resolution: "viem@npm:2.29.4"
   dependencies:

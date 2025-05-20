@@ -1,5 +1,6 @@
 import { useReadContract, useWriteContract, useWaitForTransactionReceipt, useAccount, usePublicClient, useBalance, useSendTransaction } from 'wagmi';
 import { useEffect, useState } from 'react';
+import { fetchPostIdAsUint, postIdToHex } from '../utils/lensPostUtils';
 import { encodeFunctionData, keccak256, toBytes, encodeAbiParameters, stringToHex } from 'viem';
 import { contractAddress, paymentTokenAddress } from '../constants/addresses';
 import { abi } from '../constants/abi';
@@ -508,6 +509,12 @@ export const useLensAdCampaignMarketplace = () => {
       }) as any[];
       console.log(`Raw campaign info data for ID ${campaignId}:`, data);
       
+      // Based on the contract's getCampaignInfo function, the response has the following structure:
+      // [postId, sellerAddress, depositsToPayInfluencers, startTime, endTime, minFollowersRequired, status,
+      //  groveContentURI, contentHash, version, availableLikeSlots, availableCommentSlots, availableQuoteSlots,
+      //  claimedLikeSlots, claimedCommentSlots, claimedQuoteSlots, likeReward, commentReward, quoteReward,
+      //  rewardClaimableTime, rewardTimeEnd]
+      
       // Format the returned data into a structured object
       const formattedData = {
         postId: data[0] as string,
@@ -529,7 +536,10 @@ export const useLensAdCampaignMarketplace = () => {
         likeReward: data[16] as bigint,
         commentReward: data[17] as bigint,
         quoteReward: data[18] as bigint,
-        campaignId: data[19] as bigint
+        // The contract doesn't return campaignId, so we manually add it from the input parameter
+        campaignId: BigInt(campaignId),
+        rewardClaimableTime: data[19] as bigint, // Adjusted index based on contract return values
+        rewardTimeEnd: data[20] as bigint       // Adjusted index based on contract return values
       };
       
       console.log(`Formatted campaign info for ID ${campaignId}:`, formattedData);
@@ -566,7 +576,7 @@ export const useLensAdCampaignMarketplace = () => {
       // Encode the function data for the target contract
       let encodedData;
       
-      // Special handling for createAdCampaign which needs a custom ABI
+      // Special handling for functions that need custom ABIs
       if (targetFunction === 'createAdCampaign') {
         const createAdCampaignABI = [
           {
@@ -642,6 +652,55 @@ export const useLensAdCampaignMarketplace = () => {
           args: args
         });
         console.log('Using custom ABI for createAdCampaign');
+      } else if (targetFunction === 'claimReward') {
+        // Special handling for claimReward with explicit ABI to ensure correct parameter encoding
+        const claimRewardABI = [
+          {
+            "inputs": [
+              {
+                "internalType": "uint256",
+                "name": "_campaignId",
+                "type": "uint256"
+              },
+              {
+                "internalType": "uint8",
+                "name": "actionType",
+                "type": "uint8"
+              },
+              {
+                "internalType": "address",
+                "name": "feed",
+                "type": "address"
+              }
+            ],
+            "name": "claimReward",
+            "outputs": [],
+            "stateMutability": "nonpayable",
+            "type": "function"
+          }
+        ];
+        
+        // Ensure the action type is a number between 0-3
+        const safeActionType = typeof args[1] === 'number' ? 
+          Math.min(Math.max(Math.floor(args[1]), 0), 3) : 
+          3; // Default to QUOTE (3) if invalid
+        
+        // Create a modified args array with the safe action type
+        const safeArgs = [
+          args[0], // campaignId
+          safeActionType, // actionType (sanitized)
+          args[2]  // feed address
+        ];
+        
+        console.log('Original args:', args);
+        console.log('Safe args for claimReward:', safeArgs);
+        
+        encodedData = encodeFunctionData({
+          abi: claimRewardABI,
+          functionName: 'claimReward',
+          args: safeArgs
+        });
+        console.log('Using custom ABI for claimReward');
       } else {
         // For other functions, use the standard ABI
         encodedData = encodeFunctionData({
@@ -655,6 +714,20 @@ export const useLensAdCampaignMarketplace = () => {
       
       // Use writeLensTransaction to execute the transaction through the Lens smart wallet
       // This matches the approach used in createCampaignGroup
+    
+      // Set different gas parameters based on the function being called
+      let gasLimit = 500000n; // Default gas limit
+      let gasPrice = 5000000000n; // Default gas price (5 gwei)
+      
+      // Adjust gas parameters for specific functions
+      if (targetFunction === 'claimReward') {
+        // Increase gas limit for claimReward which involves ETH transfers
+        gasLimit = 1000000n;
+        console.log('Using increased gas limit for claimReward');
+      }
+      
+      console.log(`Using gas parameters: limit=${gasLimit}, price=${gasPrice}`);
+      
       return writeLensTransaction({
         address: profile.address as `0x${string}`,
         abi: accountABI,
@@ -664,7 +737,8 @@ export const useLensAdCampaignMarketplace = () => {
           value,
           encodedData
         ],
-        gas: 500000n, // Set a reasonable gas limit to prevent excessive fees
+        gas: gasLimit,
+        gasPrice: gasPrice,
       });
 
       // Return is already handled in the writeLensTransaction call above
@@ -986,9 +1060,9 @@ export const useLensAdCampaignMarketplace = () => {
   };
 
   // Claim reward
-  const claimReward = async (campaignId: number, useSmartWallet = false) => {
+  const claimReward = async (campaignId: number, actionType: number, useSmartWallet = true) => {
     try {
-      console.log("Attempting to claim reward for campaign ID:", campaignId);
+      console.log("Attempting to claim reward for campaign ID:", campaignId, "with action type:", actionType);
       
       if (!profile?.address) {
         throw new Error('No wallet address available. Please connect your wallet.');
@@ -1015,13 +1089,10 @@ export const useLensAdCampaignMarketplace = () => {
         throw new Error(`Campaign info not found for ID: ${campaignId}`);
       }
       
-      // Determine the action type from the campaign info
-      // The action type might be stored in different fields depending on the contract version
-      let actionType = 0; // Default to 0 (MIRROR)
-      
-      // Try to get the action type from different possible fields
-      if ('actionType' in (campaignInfo as any)) {
-        actionType = Number((campaignInfo as any).actionType) || 0;
+      // Ensure action type is within valid range (0-3)
+      if (actionType < 0 || actionType > 3) {
+        console.warn(`Invalid action type ${actionType}, defaulting to QUOTE (3)`);
+        actionType = 3; // Default to QUOTE if invalid
       }
       
       // Get the Lens Feed contract address
@@ -1040,39 +1111,48 @@ export const useLensAdCampaignMarketplace = () => {
       // For debugging, log the campaign info
       console.log('Full campaign info for debugging:', campaignInfo);
       
-      // Try to extract the action type from the campaign info
-      // Since the actionType property might not exist directly on the campaignInfo object,
-      // we need to use type assertions and fallbacks
-      let campaignActionType = actionType; // Default to the previously determined action type
-      console.log('Using action type for claim:', campaignActionType);
+      // Ensure we're using the correct action type format for the contract
+      // The contract expects an enum value (0-3) but we need to make sure it's properly encoded
+      let campaignActionType = actionType;
+      
+      // Log detailed information about the action type for debugging
+      console.log('Action type details:', {
+        providedActionType: actionType,
+        actionTypeToUse: campaignActionType,
+        actionTypeEnum: ActionType[campaignActionType] || 'Unknown'
+      });
       
       if (useSmartWallet && profile?.address) {
-        console.log('Using Lens Account for claimReward');
+        console.log('Using Lens smart wallet for claimReward');
         try {
-          // Try with higher gas limit for smart wallet transaction
+          // Use the Lens smart wallet with proper encoding and gas parameters
           return executeLensTransaction({
             targetFunction: 'claimReward',
-            args: [campaignId, campaignActionType, feedContractAddress],
-            value: 0n, // No ETH value needed for claiming
+            args: [BigInt(campaignId), Number(campaignActionType), feedContractAddress]
+            // Gas parameters are set inside executeLensTransaction
           });
         } catch (error) {
           console.error('Smart wallet transaction failed, trying with direct call:', error);
           // If smart wallet fails, try direct call as fallback
           return writeClaimReward({
-            ...lensAdCampaignConfig,
+            address: CONTRACT_ADDRESS as `0x${string}`,
+            abi: LENS_AD_CAMPAIGN_ABI,
             functionName: 'claimReward',
-            args: [campaignId, campaignActionType, feedContractAddress],
+            args: [BigInt(campaignId), Number(campaignActionType), feedContractAddress],
             gas: 500000n, // Increase gas limit
+            gasPrice: 5000000000n // 5 gwei
           });
         }
       }
 
-      console.log('Using direct contract call for claimReward');
+      console.log('Using direct contract call for claimReward with CONTRACT_ADDRESS:', CONTRACT_ADDRESS);
       return writeClaimReward({
-        ...lensAdCampaignConfig,
+        address: CONTRACT_ADDRESS as `0x${string}`,
+        abi: LENS_AD_CAMPAIGN_ABI,
         functionName: 'claimReward',
-        args: [campaignId, campaignActionType, feedContractAddress],
+        args: [BigInt(campaignId), Number(campaignActionType), feedContractAddress],
         gas: 500000n, // Increase gas limit to handle complex operations
+        gasPrice: 5000000000n, // 5 gwei
       });
     } catch (error: any) {
       console.error('Error claiming reward:', error);
@@ -1295,44 +1375,56 @@ export const useLensAdCampaignMarketplace = () => {
       // Ensure we have a content hash (required for QUOTE actions)
       const safeContentHash = contentHash || "";
       
+      // Fetch the post ID as uint from the Lens API
+      console.log('Fetching post ID as uint for post string:', postId);
+      const postIdAsUint = await fetchPostIdAsUint(postId);
+      
+      if (!postIdAsUint) {
+        throw new Error('Failed to fetch post ID from Lens API. Please check the post string and try again.');
+      }
+      
       console.log('Calling executeDirectAction with parameters:');
       console.log('- Feed address:', feedAddress);
       console.log('- Action type:', actionType);
       console.log('- Content hash:', safeContentHash);
       console.log('- Campaign ID:', campaignId);
       console.log('- Post string:', postId);
+      console.log('- Post ID as uint:', postIdAsUint.toString());
+      
       let result;
       // Use the Lens Protocol executeLensTransaction function to call the executeDirectAction function
       if (useSmartWallet && profile?.address) {
-      result = await executeLensTransaction({
-        targetFunction: 'executeDirectAction',
-        args: [
-          feedAddress,                  // feed address
-          actionType,                   // action type (as enum: 1=MIRROR, 2=COMMENT, 3=QUOTE)
-          safeContentHash,              // content hash
-          BigInt(campaignId),           // campaign ID
-          postId                        // post string
-        ]
-      });
-    }
-    else {
-      console.log("Using direct contract call for executeDirectAction")
-      return sendTransaction({
-        to: lensAdCampaignConfig.address,
-        data: encodeFunctionData({
-          abi: LENS_AD_CAMPAIGN_ABI,
-          functionName: 'executeDirectAction',
+        result = await executeLensTransaction({
+          targetFunction: 'executeDirectAction',
           args: [
-            feedAddress,
-            actionType,
-            safeContentHash,
-            BigInt(campaignId),
-            postId
+            feedAddress,                  // feed address
+            actionType,                   // action type (as enum: 1=MIRROR, 2=COMMENT, 3=QUOTE)
+            safeContentHash,              // content hash
+            BigInt(campaignId),           // campaign ID
+            postId,                       // post string
+            postIdAsUint                  // post ID as uint
           ]
-        }),
-        gas: 500000n
-      })
-    }
+        });
+      }
+      else {
+        console.log("Using direct contract call for executeDirectAction")
+        return sendTransaction({
+          to: lensAdCampaignConfig.address,
+          data: encodeFunctionData({
+            abi: LENS_AD_CAMPAIGN_ABI,
+            functionName: 'executeDirectAction',
+            args: [
+              feedAddress,
+              actionType,
+              safeContentHash,
+              BigInt(campaignId),
+              postId,
+              postIdAsUint
+            ]
+          }),
+          gas: 500000n
+        })
+      }
       
       console.log('executeDirectAction transaction result:', result);
       return result;

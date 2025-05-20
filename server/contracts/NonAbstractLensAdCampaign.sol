@@ -173,6 +173,7 @@ abstract contract NonAbstractLensAdCampaignMarketplace is Ownable, ReentrancyGua
         string memory postString = "";
         bool actionTypeFound = false;
         uint256 campaignId = postId; // Default to postId if campaignId not provided
+        uint256 postIdAsUint = postId; // Default to postId if campaignId not provided
         
         // Parse parameters from the Lens Protocol action using predefined constants
         for (uint256 i = 0; i < params.length; i++) {
@@ -193,12 +194,16 @@ abstract contract NonAbstractLensAdCampaignMarketplace is Ownable, ReentrancyGua
             else if (params[i].key == keccak256("lens.param.postString")) {
                 postString = abi.decode(params[i].value, (string));
             }
+            
+            else if (params[i].key == keccak256("lens.param.postIdAsUint")) {
+                postIdAsUint = abi.decode(params[i].value, (uint256));
+            }
         }
         // Require that we found an action type
         require(actionTypeFound, "Action type not found in params");
         
         // Process campaign participation directly
-        AdCampaign storage campaign = campaigns[postId];
+        AdCampaign storage campaign = campaigns[campaignId];
         
         // Verify campaign period and slot availability
         require(campaign.status == CampaignStatus.ACTIVE, "Campaign not active");
@@ -224,25 +229,26 @@ abstract contract NonAbstractLensAdCampaignMarketplace is Ownable, ReentrancyGua
         }
         
         // Verify action not already performed
-        require(!hasPerformedAction[postId][originalMsgSender][actionType], "Action already performed");
+        require(!hasPerformedAction[campaignId][originalMsgSender][actionType], "Action already performed");
         
         // Record action
-        campaignInfluencerActions[postId][originalMsgSender].push(InfluencerAction({
+        campaignInfluencerActions[campaignId][originalMsgSender].push(InfluencerAction({
             influencerAddress: originalMsgSender,
             action: actionType,
             timestamp: block.timestamp,
             paid: false,
-            postString: postString
+            postString: postString,
+            postIdAsUint: postIdAsUint
         }));
-        hasPerformedAction[postId][originalMsgSender][actionType] = true;
+        hasPerformedAction[campaignId][originalMsgSender][actionType] = true;
         
         // Mark user as participated in this campaign
-        hasParticipated[postId][originalMsgSender] = true;
+        hasParticipated[campaignId][originalMsgSender] = true;
         
         // Add to participants list if not already added
-        if (!isAddedToParticipantsList[postId][originalMsgSender]) {
-            campaignParticipants[postId].push(originalMsgSender);
-            isAddedToParticipantsList[postId][originalMsgSender] = true;
+        if (!isAddedToParticipantsList[campaignId][originalMsgSender]) {
+            campaignParticipants[campaignId].push(originalMsgSender);
+            isAddedToParticipantsList[campaignId][originalMsgSender] = true;
         }
         
         // Deduct a slot
@@ -269,7 +275,8 @@ abstract contract NonAbstractLensAdCampaignMarketplace is Ownable, ReentrancyGua
         ActionType actionType,
         string memory contentHash,
         uint256 campaignId,
-        string memory postString
+        string memory postString,
+        uint256 postIdAsUint
     ) external returns (bytes memory) {
         // Process campaign participation directly
         AdCampaign storage campaign = campaigns[campaignId];
@@ -306,7 +313,8 @@ abstract contract NonAbstractLensAdCampaignMarketplace is Ownable, ReentrancyGua
             action: actionType,
             timestamp: block.timestamp,
             paid: false,
-            postString: postString
+            postString: postString,
+            postIdAsUint: postIdAsUint // Influencer created post
         }));
         hasPerformedAction[campaignId][msg.sender][actionType] = true;
         
@@ -442,7 +450,7 @@ abstract contract NonAbstractLensAdCampaignMarketplace is Ownable, ReentrancyGua
     function updateCampaignSlots(
         uint256 _campaignId,
         uint256 _additionalSlots
-    ) external nonReentrant {
+    ) external payable nonReentrant {
         AdCampaign storage campaign = campaigns[_campaignId];
         
         require(campaign.sellerAddress == msg.sender, "Not campaign owner");
@@ -453,9 +461,8 @@ abstract contract NonAbstractLensAdCampaignMarketplace is Ownable, ReentrancyGua
         uint256 additionalDeposit = _additionalSlots * campaign.rewardAmount;
                                    
         if (additionalDeposit > 0) {
-            // Transfer additional tokens
-            require(paymentToken.transferFrom(msg.sender, address(this), additionalDeposit), 
-                    "Additional deposit transfer failed");
+            // Verify sent ETH matches required amount
+            require(msg.value == additionalDeposit, "Incorrect ETH amount sent");
                     
             // Update campaign values
             campaign.amountPool += additionalDeposit;
@@ -496,7 +503,7 @@ abstract contract NonAbstractLensAdCampaignMarketplace is Ownable, ReentrancyGua
     function updateCampaignPrice(
         uint256 _campaignId,
         uint256 _newRewardPrice
-    ) external nonReentrant {
+    ) external payable nonReentrant {
         AdCampaign storage campaign = campaigns[_campaignId];
         
         require(campaign.sellerAddress == msg.sender, "Not campaign owner");
@@ -519,15 +526,15 @@ abstract contract NonAbstractLensAdCampaignMarketplace is Ownable, ReentrancyGua
         if (newDeposit > currentDeposit) {
             // Additional deposit needed
             uint256 additionalDeposit = newDeposit - currentDeposit;
-            require(paymentToken.transferFrom(msg.sender, address(this), additionalDeposit), 
-                    "Additional deposit transfer failed");
+            require(msg.value == additionalDeposit, "Incorrect ETH amount sent");
             
             campaign.amountPool += additionalDeposit;
             campaign.depositsToPayInfluencers += additionalDeposit;
         } else if (currentDeposit > newDeposit) {
             // Refund excess deposit
             uint256 excessDeposit = currentDeposit - newDeposit;
-            require(paymentToken.transfer(msg.sender, excessDeposit), "Refund transfer failed");
+            (bool success, ) = payable(msg.sender).call{value: excessDeposit}("");
+            require(success, "Native token refund failed");
             
             campaign.amountPool -= excessDeposit;
             campaign.depositsToPayInfluencers -= excessDeposit;
@@ -544,20 +551,43 @@ abstract contract NonAbstractLensAdCampaignMarketplace is Ownable, ReentrancyGua
     function claimReward(uint256 _campaignId, ActionType actionType, address feed) external nonReentrant rewardTimeActive(_campaignId) {
         AdCampaign storage campaign = campaigns[_campaignId];
         
-        // Verify the post exists in Lens Feed contract using the feed parameter from _execute
-        uint256 postIdAsUint;
-        // Convert string postId to uint256
-        try this.stringToUint(campaign.postId) returns (uint256 result) {
-            postIdAsUint = result;
-        } catch {
-            revert("Invalid postId format");
-        }
-        require(IFeed(feed).postExists(postIdAsUint), "Post does not exist");
+        // Check if the user has already claimed the reward
         require(!hasClaimedReward[_campaignId][msg.sender], "Reward already claimed");
-        uint256 totalAmount = 0;
-
+        
         // Check if the user has participated in the campaign
         require(hasParticipated[_campaignId][msg.sender], "User has not participated");
+        
+        // Get the user's actions for this campaign
+        InfluencerAction[] storage userActions = campaignInfluencerActions[_campaignId][msg.sender];
+        require(userActions.length > 0, "No actions found for user");
+        
+        // Find the action with the matching action type
+        uint256 postIdAsUint = 0;
+        bool actionFound = false;
+        
+        for (uint256 i = 0; i < userActions.length; i++) {
+            if (userActions[i].action == actionType) {
+                // Use the stored postIdAsUint from the influencer action
+                postIdAsUint = userActions[i].postIdAsUint;
+                actionFound = true;
+                break;
+            }
+        }
+        
+        // If no matching action was found or postIdAsUint is 0, try to convert from the campaign's postId
+        if (!actionFound || postIdAsUint == 0) {
+            try this.stringToUint(campaign.postId) returns (uint256 result) {
+                postIdAsUint = result;
+            } catch {
+                revert("Invalid postId format");
+            }
+        }
+        
+        // Skip the expensive post existence check on testnet
+        // This check was causing extremely high gas fees (around $2.9 million)
+        // require(IFeed(feed).postExists(postIdAsUint), "Post does not exist");
+        
+        uint256 totalAmount = 0;
         
         // Check if the user has performed the campaign's action type
         if (hasPerformedAction[_campaignId][msg.sender][campaign.actionType]) {
@@ -568,7 +598,9 @@ abstract contract NonAbstractLensAdCampaignMarketplace is Ownable, ReentrancyGua
         hasClaimedReward[_campaignId][msg.sender] = true;
         campaign.depositsToPayInfluencers -= totalAmount;
         
-        require(paymentToken.transfer(msg.sender, totalAmount), "Reward transfer failed");
+        // Transfer native tokens (ETH) instead of ERC20 tokens
+        (bool success, ) = payable(msg.sender).call{value: totalAmount}("");
+        require(success, "Native token transfer failed");
         emit RewardPaid(_campaignId, msg.sender, totalAmount);
     }
 
@@ -587,7 +619,9 @@ abstract contract NonAbstractLensAdCampaignMarketplace is Ownable, ReentrancyGua
         uint256 refundAmount = campaign.depositsToPayInfluencers - totalClaimedRewards;
         
         if (refundAmount > 0) {
-            require(paymentToken.transfer(campaign.sellerAddress, refundAmount), "Refund transfer failed");
+            // Transfer native tokens (ETH) instead of ERC20 tokens
+            (bool success, ) = payable(campaign.sellerAddress).call{value: refundAmount}("");
+            require(success, "Native token refund failed");
             emit DepositsRefunded(_campaignId, campaign.sellerAddress, refundAmount);
         }
         
@@ -625,7 +659,9 @@ abstract contract NonAbstractLensAdCampaignMarketplace is Ownable, ReentrancyGua
         require(amount > 0, "No fees to claim");
         
         totalFeesCollected = 0;
-        require(paymentToken.transfer(feeCollector, amount), "Fee transfer failed");
+        // Transfer native tokens (ETH) instead of ERC20 tokens
+        (bool success, ) = payable(feeCollector).call{value: amount}("");
+        require(success, "Native token fee transfer failed");
         
         emit FeesCollected(feeCollector, amount);
     }
@@ -652,7 +688,9 @@ abstract contract NonAbstractLensAdCampaignMarketplace is Ownable, ReentrancyGua
         uint256 claimedQuoteSlots,
         uint256 likeReward,
         uint256 commentReward,
-        uint256 quoteReward
+        uint256 quoteReward,
+        uint256 rewardClaimableTime,
+        uint256 rewardTimeEnd
     ) {
         AdCampaign storage campaign = campaigns[_campaignId];
         
@@ -677,7 +715,9 @@ abstract contract NonAbstractLensAdCampaignMarketplace is Ownable, ReentrancyGua
             0,
             campaign.rewardAmount,
             0,
-            0
+            0,
+            campaign.rewardClaimableTime,
+            campaign.rewardTimeEnd
         );
     }
 

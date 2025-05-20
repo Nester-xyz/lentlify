@@ -104,10 +104,10 @@ const createAd: React.FC = () => {
 
           const now = Math.floor(Date.now() / 1000);
           // For testing: 3 minutes campaign active duration
-          const durationInSeconds = 4 * 60;
+          const durationInSeconds = 2 * 60;
           // For testing: 2 minutes inactive period + 2 minutes reward display time
-          const inactivePeriod = 4 * 60;
-          const rewardDisplayTime = 4 * 60;
+          const inactivePeriod = 2 * 60;
+          const rewardDisplayTime = 2 * 60;
 
           // Start campaign after 10 seconds
           const futureStartTime = now + 10;

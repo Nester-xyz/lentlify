@@ -89,6 +89,24 @@ interface UserInteraction {
   };
 }
 
+// Helper function to format time ago in a human-readable format
+const formatTimeAgo = (milliseconds: number): string => {
+  const seconds = Math.floor(milliseconds / 1000);
+  const minutes = Math.floor(seconds / 60);
+  const hours = Math.floor(minutes / 60);
+  const days = Math.floor(hours / 24);
+
+  if (days > 0) {
+    return `${days} ${days === 1 ? 'day' : 'days'}`;
+  } else if (hours > 0) {
+    return `${hours} ${hours === 1 ? 'hour' : 'hours'}`;
+  } else if (minutes > 0) {
+    return `${minutes} ${minutes === 1 ? 'minute' : 'minutes'}`;
+  } else {
+    return `${seconds} ${seconds === 1 ? 'second' : 'seconds'}`;
+  }
+};
+
 const Profile = () => {
   const { profile } = UseAuth();
   const navigate = useNavigate();
@@ -234,29 +252,27 @@ const Profile = () => {
               // This is the time when rewards become claimable after the campaign ends
               let calculatedRewardClaimableTime = campaignInfo.endTime;
               
-              // Check if there's a specific reward claimable time in the campaign data
-              // Different contracts might store this information in different fields
-              try {
-                // Try to access different possible fields where the reward claimable time might be stored
-                if ('rewardClaimableTime' in campaignInfo) {
-                  calculatedRewardClaimableTime = (campaignInfo as any).rewardClaimableTime as bigint;
-                } else if ('adDisplayTimePeriod' in campaignInfo) {
-                  const adDisplayTimePeriod = (campaignInfo as any).adDisplayTimePeriod;
-                  if (adDisplayTimePeriod && typeof adDisplayTimePeriod === 'object' && 'startTime' in adDisplayTimePeriod) {
-                    calculatedRewardClaimableTime = adDisplayTimePeriod.startTime as bigint;
-                  }
-                }
-              } catch (error) {
-                console.error('Error accessing campaign timing data:', error);
+              // According to the Model Context Protocol docs, we should use the rewardClaimableTime directly from the contract
+              // This time represents when rewards become claimable (ad_time + reward_time)
+              if ('rewardClaimableTime' in campaignInfo && campaignInfo.rewardClaimableTime > 0n) {
+                // Use the rewardClaimableTime directly from the contract
+                calculatedRewardClaimableTime = campaignInfo.rewardClaimableTime;
+                console.log(`Using rewardClaimableTime from contract for campaign ${i}: ${calculatedRewardClaimableTime}`);
+                console.log("Formated reward claimable time",new Date(Number(campaignInfo.rewardClaimableTime) * 1000).toLocaleDateString(),new Date(Number(campaignInfo.endTime) * 1000).toLocaleDateString() )
+              } else {
+                // Fallback: If rewardClaimableTime is not available or is zero, calculate dynamically
+                // Use the same inactive period logic as in campaign creation (10 minutes by default)
+                const inactivePeriod = BigInt(10 * 60); // Same as in create-ad page
+                calculatedRewardClaimableTime = campaignInfo.endTime + inactivePeriod;
+                console.log(`Using dynamically calculated claimable time for campaign ${i}: ${calculatedRewardClaimableTime}`);
               }
               
-              // If the calculated time is less than the end time, use the end time plus a waiting period
-              if (calculatedRewardClaimableTime <= campaignInfo.endTime) {
-                calculatedRewardClaimableTime = campaignInfo.endTime + BigInt(4 * 60); // 4 minutes waiting period
-              }
+              // Use the campaignId from the contract response if available, otherwise fall back to the loop index
+              const actualCampaignId = campaignInfo.campaignId ? Number(campaignInfo.campaignId) : i;
+              console.log(`Using campaign ID ${actualCampaignId} for interaction (contract ID: ${campaignInfo.campaignId}, loop index: ${i})`);
               
               interactions.push({
-                campaignId: i,
+                campaignId: actualCampaignId,
                 postId: campaignInfo.postId,
                 actionType: actionTypeValue as ActionType,
                 hasClaimedReward: !!claimed, // Ensure boolean type
@@ -265,7 +281,7 @@ const Profile = () => {
                               actionTypeValue === ActionType.QUOTE ? campaignInfo.quoteReward : 
                               campaignInfo.likeReward,
                 endTime: campaignInfo.endTime,
-                // Set the reward claimable time to 4 minutes after campaign ends
+                // Use the reward claimable time from the contract
                 rewardClaimableTime: calculatedRewardClaimableTime,
                 // We no longer need a separate end time since rewards can be claimed indefinitely
                 rewardClaimEndTime: calculatedRewardClaimableTime,
@@ -726,34 +742,26 @@ const Profile = () => {
                   {/* Reward amount */}
                   <div className="mt-4">
                     <div className="text-green-400 font-medium">
-                      Reward: {(Number(interaction.rewardAmount) / 1e18).toFixed(4)} ETH
+                      Reward: {interaction.rewardAmount ? (Number(interaction.rewardAmount) / 1e18).toFixed(4) : '0.0000'} GRASS
                     </div>
                   </div>
                   
                   {/* Campaign timing information */}
-                  <div className="text-center py-2 my-2 rounded-md">
+                  <div className="text-center py-2 my-2">
                     {!interaction.hasClaimedReward && interaction.rewardClaimableTime ? (
                       <div className="space-y-2">
-                        {/* Campaign active phase */}
-                        {Date.now() < Number(interaction.endTime) * 1000 ? (
-                          <div className="text-blue-400 font-medium bg-blue-900 bg-opacity-30 p-2 rounded">
-                            <div>Campaign active for {Math.ceil((Number(interaction.endTime) * 1000 - Date.now()) / 60000)} more minutes</div>
-                            <div className="text-xs mt-1">
-                              After campaign ends, wait {Math.ceil((Number(interaction.rewardClaimableTime) * 1000 - Number(interaction.endTime) * 1000) / 60000)} minutes to claim rewards
-                            </div>
+                        <div className="text-gray-300">
+                          <div>
+                            Campaign ends: {Date.now() < Number(interaction.endTime) * 1000 
+                              ? `${formatTimeAgo(Number(interaction.endTime) * 1000 - Date.now())} remaining` 
+                              : `${formatTimeAgo(Date.now() - Number(interaction.endTime) * 1000)} ago`}
                           </div>
-                        ) : Date.now() < Number(interaction.rewardClaimableTime) * 1000 ? (
-                          <div className="text-yellow-400 font-medium bg-yellow-900 bg-opacity-30 p-2 rounded">
-                            <div>Campaign ended. Wait time to claim: {Math.ceil((Number(interaction.rewardClaimableTime) * 1000 - Date.now()) / 60000)} minutes</div>
+                          <div className="mt-1">
+                            Rewards claimable after: {new Date(Number(interaction.rewardClaimableTime) * 1000).toLocaleDateString()} {new Date(Number(interaction.rewardClaimableTime) * 1000).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                            {Date.now() > Number(interaction.rewardClaimableTime) * 1000 && ' (claimable now)'}
+                            {Date.now() < Number(interaction.rewardClaimableTime) * 1000 && ` (in ${formatTimeAgo(Number(interaction.rewardClaimableTime) * 1000 - Date.now())})`}
                           </div>
-                        ) : (
-                          <div className="text-green-400 font-medium bg-green-900 bg-opacity-30 p-2 rounded">
-                            <div>Reward is now claimable!</div>
-                            <div className="text-xs mt-1">
-                              Rewards can be claimed at any time
-                            </div>
-                          </div>
-                        )}
+                        </div>
                       </div>
                     ) : null}
                   </div>
@@ -776,7 +784,7 @@ const Profile = () => {
                             try {
                               console.log('Attempting to claim reward for campaign:', interaction.campaignId);
                               // Use smart wallet (true) instead of direct contract call
-                              const result = await claimReward(interaction.campaignId, true);
+                              const result = await claimReward(interaction.campaignId,interaction.actionType, true);
                               console.log('Claim reward result:', result);
                             } catch (error) {
                               console.error('Error claiming reward:', error);
