@@ -34,7 +34,7 @@ const CreateCampaignGroup: React.FC = () => {
             gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))",
           }}
         >
-          {Array.from({ length: 3 }).map((_, index) => (
+          {Array.from({ length: 4 }).map((_, index) => (
             <CampaignCardShimmer key={index} />
           ))}
         </div>

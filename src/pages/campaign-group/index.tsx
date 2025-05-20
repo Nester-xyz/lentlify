@@ -9,7 +9,6 @@ import {
   FiHash,
   FiMessageSquare,
   FiRepeat,
-  FiArrowLeft,
 } from "react-icons/fi";
 import { storageClient, fetchLensProfileByAddress } from "@/lib/lens";
 import { UseAuth } from "@/context/auth/AuthContext";
@@ -335,6 +334,7 @@ const CampaignGroupDetail: React.FC = () => {
 
   return (
     <Page pageHeading="Campagin Group Details" title="Campaign Group Details">
+      {/* Sticky Header */}
       {/* Loading state */}
       {isLoading && (
         <div className="flex justify-center items-center py-12">

@@ -20,7 +20,7 @@ const Page = ({ title, children, rightSide, pageHeading }: PageProps) => {
           </div>
           <div className="">{rightSide}</div>
         </div>
-        <div className="m-auto max-w-4xl py-2">{children}</div>
+        <div className="">{children}</div>
       </div>
     </div>
   );

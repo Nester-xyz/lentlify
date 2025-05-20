@@ -58,8 +58,10 @@ const CampaignCard = ({
 
             {/* Text Content - To the right of the main profile picture */}
             <div className="ml-4 flex-grow min-w-0">
-              <p className="text-xl font-semibold">{group.metadata?.name}</p>
-              <p className="flex gap-2 items-center">
+              <div className="text-xl font-semibold">
+                {group.metadata?.name}
+              </div>
+              <div className="flex gap-2 items-center">
                 {Object.keys(ownerProfiles[group.owner] ?? {})?.includes(
                   "image"
                 ) ? (
@@ -79,13 +81,15 @@ const CampaignCard = ({
                   </>
                 ) : (
                   <>
-                    <div className="flex items-center mb-3">
-                      <div className="w-10 h-10 rounded-full overflow-hidden bg-gray-100 dark:bg-gray-700 shimmer mr-3"></div>
-                      <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-3/4 shimmer"></div>
+                    <div>
+                      <div className="flex items-center mb-3">
+                        <div className="w-5 h-5 flex-shrink-0 rounded-full overflow-hidden bg-gray-100 dark:bg-gray-700 shimmer mr-3"></div>
+                        <div className="h-4 flex-shrink-0 bg-gray-200 dark:bg-gray-700 rounded w-32 shimmer"></div>
+                      </div>
                     </div>
                   </>
                 )}
-              </p>
+              </div>
 
               <p className="mt-2 text-sm text-gray-600 dark:text-gray-400 text-left max-h-20 overflow-hidden text-ellipsis">
                 {group.metadata?.description || "No description available."}
