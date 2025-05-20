@@ -209,7 +209,7 @@ const WalletPage: React.FC = () => {
               {balanceData && parseFloat(balanceData.formatted).toFixed(4)}
               <img
                 src={grassTokenLogo}
-                alt="GRASS"
+                alt="GHO"
                 className="inline-block w-8 h-8"
               />
             </div>

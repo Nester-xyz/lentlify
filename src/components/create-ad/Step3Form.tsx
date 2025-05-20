@@ -13,7 +13,7 @@ const Step3Form: React.FC<Step3FormProps> = ({ data, setData }) => {
       <div className="w-full space-y-6">
         <div className="relative text-left">
           <CustomizedInput
-            label="Pool Amount (GRASS Token)"
+            label="Pool Amount (GHO Token)"
             name="pool_amount"
             type="text"
             placeholder="Enter pool amount"

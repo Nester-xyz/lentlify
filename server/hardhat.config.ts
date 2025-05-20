@@ -27,6 +27,14 @@ const config: HardhatUserConfig = {
         "https://api-explorer-verify.staging.lens.zksync.dev/contract_verification",
       zksync: true,
     },
+    lensMainnet: {
+      chainId: 232,
+      url: "https://api.lens.matterhosted.dev/",
+      ethNetwork: `https://eth-sepolia.g.alchemy.com/v2/7YCBJn_-s2h9BA_r2-SWrcqsUqgWHqdR`, // dont think you need this
+      zksync: true,
+      verifyURL:
+        "https://api-explorer-verify.lens.matterhosted.dev/contract_verification",
+    },
     hardhat: {
       zksync: true,
       loggingEnabled: true,

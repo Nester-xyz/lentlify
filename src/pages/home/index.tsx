@@ -588,7 +588,7 @@ const Home = () => {
                     <span className="text-gray-400">Rewards: </span>
                     <div className="flex flex-col gap-1 mt-1">
                         <div className="text-white text-xs">
-                          {ActionType[campaign.metadata?.actionType || 0]}: {(Number(campaign.likeReward) / 1e18).toFixed(4)} GRASS
+                          {ActionType[campaign.metadata?.actionType || 0]}: {(Number(campaign.likeReward) / 1e18).toFixed(4)} GHO
                         </div>
                     </div>
                   </div>
@@ -638,7 +638,7 @@ const Home = () => {
                         : campaign.endTime && Number(campaign.endTime) * 1000 < Date.now()
                           ? 'Ended'
                         : campaign.availableLikeSlots && Number(campaign.availableLikeSlots) > 0 
-                          ? `${ActionType[campaign.metadata?.actionType||0]} for ${campaign.likeReward && BigInt(campaign.likeReward) > 0 ? (Number(BigInt(campaign.likeReward)) / 1e18).toFixed(4) + ' GRASS' : 'Completed'}` 
+                          ? `${ActionType[campaign.metadata?.actionType||0]} for ${campaign.likeReward && BigInt(campaign.likeReward) > 0 ? (Number(BigInt(campaign.likeReward)) / 1e18).toFixed(4) + ' GHO' : 'Completed'}` 
                           : 'Campaign Full'}
                     </button>
                   )}

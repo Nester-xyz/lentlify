@@ -803,7 +803,7 @@ const CampaignGroupDetail: React.FC = () => {
                                       Number(campaign.likeReward) / 1e18
                                     ).toFixed(4)
                                   : "0"}{" "}
-                                GRASS
+                                GHO
                               </span>
                             </div>
 
@@ -818,7 +818,7 @@ const CampaignGroupDetail: React.FC = () => {
                                       ) / 1e18
                                     ).toFixed(4)
                                   : "0"}{" "}
-                                GRASS
+                                GHO
                               </span>
                             </div>
 
@@ -886,7 +886,7 @@ const CampaignGroupDetail: React.FC = () => {
                               {campaign.endTime && Number(campaign.endTime) * 1000 < Date.now()
                                 ? 'Ended'
                                 : campaign.availableLikeSlots && Number(campaign.availableLikeSlots) > 0 
-                                  ? `${ActionType[campaign.metadata?.actionType||0]} for ${campaign.likeReward && BigInt(campaign.likeReward) > 0 ? (Number(BigInt(campaign.likeReward)) / 1e18).toFixed(4) + ' GRASS' : 'Completed'}` 
+                                  ? `${ActionType[campaign.metadata?.actionType||0]} for ${campaign.likeReward && BigInt(campaign.likeReward) > 0 ? (Number(BigInt(campaign.likeReward)) / 1e18).toFixed(4) + ' GHO' : 'Completed'}` 
                                   : 'Campaign Full'}
                             </button>
                           )}

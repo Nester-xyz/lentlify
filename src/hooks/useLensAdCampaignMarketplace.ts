@@ -2,7 +2,7 @@ import { useReadContract, useWriteContract, useWaitForTransactionReceipt, useAcc
 import { useEffect, useState } from 'react';
 import { fetchPostIdAsUint, postIdToHex } from '../utils/lensPostUtils';
 import { encodeFunctionData, keccak256, toBytes, encodeAbiParameters, stringToHex } from 'viem';
-import { contractAddress, paymentTokenAddress } from '../constants/addresses';
+import { contractAddress, feedAddress, paymentTokenAddress } from '../constants/addresses';
 import { abi } from '../constants/abi';
 import { useSessionClient } from '../context/session/sessionContext';
 import type { Address } from 'viem';
@@ -1230,8 +1230,7 @@ export const useLensAdCampaignMarketplace = () => {
       
       // Get the Lens Feed contract address
       // This is needed as the third parameter for the claimReward function
-      const feedContractAddress = '0x4d97287FF1A0e030cA4604EcDa9be355dd8A8BaC'; // Lens Feed contract address on Sepolia
-      
+      const feedContractAddress = feedAddress; // Lens Feed contract address on Sepolia
       console.log('Claiming reward with params:', {
         campaignId,
         actionType,
@@ -1519,9 +1518,6 @@ export const useLensAdCampaignMarketplace = () => {
       if (!profile?.address) {
         throw new Error('Lens profile address not available. Please make sure you are logged in to Lens Protocol.');
       }
-      
-      // Use the Lens Protocol feed address
-      const feedAddress = "0x4d97287FF1A0e030cA4604EcDa9be355dd8A8BaC";
       
       // Ensure we have a content hash (required for QUOTE actions)
       const safeContentHash = contentHash || "";

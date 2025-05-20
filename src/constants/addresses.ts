@@ -1,2 +1,3 @@
-export const contractAddress = "0x2c6e2ddCa82B90f2814f701af780c467223CA801";
+export const contractAddress = "0x296916FBC4383141264C7E013692eEB2002E9C19";
 export const paymentTokenAddress = "0x000000000000000000000000000000000000800A";
+export const feedAddress = "0x433025d9718302E7B2e1853D712d96F00764513F"

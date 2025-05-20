@@ -628,7 +628,7 @@ const CampaignPost: React.FC = () => {
                 <div className="space-y-2">
                   {/* Reward */}
                   <div className="flex items-center text-sm text-gray-300">
-                    <span>Reward: {campaign.likeReward ? (Number(campaign.likeReward) / 1e18).toFixed(4) : '0'} GRASS</span>
+                    <span>Reward: {campaign.likeReward ? (Number(campaign.likeReward) / 1e18).toFixed(4) : '0'} GHO</span>
                   </div>
                   
                   {/* Available Slots */}
@@ -643,7 +643,7 @@ const CampaignPost: React.FC = () => {
                   
                   {/* Total Pool */}
                   <div className="flex items-center text-sm text-gray-300">
-                    <span>Total Pool: {campaign.depositsToPayInfluencers ? (Number(campaign.depositsToPayInfluencers) / 1e18).toFixed(4) : '0'} GRASS</span>
+                    <span>Total Pool: {campaign.depositsToPayInfluencers ? (Number(campaign.depositsToPayInfluencers) / 1e18).toFixed(4) : '0'} GHO</span>
                   </div>
                   
                   {/* Status */}
@@ -699,7 +699,7 @@ const CampaignPost: React.FC = () => {
                         : campaign.endTime && Number(campaign.endTime) * 1000 < Date.now()
                           ? 'Ended'
                         : campaign.availableLikeSlots && Number(campaign.availableLikeSlots) > 0 
-                          ? `${ActionType[campaign.metadata?.actionType||0]} for ${campaign.likeReward && BigInt(campaign.likeReward) > 0 ? (Number(BigInt(campaign.likeReward)) / 1e18).toFixed(4) + ' GRASS' : 'Completed'}` 
+                          ? `${ActionType[campaign.metadata?.actionType||0]} for ${campaign.likeReward && BigInt(campaign.likeReward) > 0 ? (Number(BigInt(campaign.likeReward)) / 1e18).toFixed(4) + ' GHO' : 'Completed'}` 
                           : 'Campaign Full'}
                     </button>
                   )}
