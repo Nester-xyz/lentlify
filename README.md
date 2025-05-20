@@ -1,5 +1,5 @@
 
-<img width="1437" alt="Screenshot 2025-05-20 at 19 03 00" src="https://github.com/user-attachments/assets/abff9a9c-27fb-45f9-9736-21cffbc1ffa8" />
+<img width="1437" alt="Screenshot 2025-05-20 at 19 03 00" src="https:///user-attachments/assets/abff9a9c-27fb-45f9-9736-21cffbc1ffa8" />
 
 # Lentlify – Decentralized Ad Campaigns on Lens Protocol
 
@@ -88,16 +88,24 @@ Influencer Participation: Influencers join campaigns by performing Lens social a
 
 ### 🛠️ Lens Protocol Integration
 
-- **Lens Modules**:
+Lentlify is built to deeply integrate with Lens Protocol’s social graph and on-chain modules:
+The smart contract inherits Lens’s BaseAction module to hook into the Lens ActionHub system
 
-  - Uses `BaseAction` for Lens ActionHub integration.
-  - Hooks into Lens posts and profile actions for campaign verification.
+- This means the contract can act as a Lens “action module” – whenever a user mirrors/comments on a promoted Lens post, the Lens protocol can trigger Lentlify’s contract logic. Through the ActionHub integration, campaign participation can be recorded automatically as Lens actions occur.
+-  The contract constructor accepts a Graph address (Lens Social Graph contract) and an ActionHub address, which are provided on deployment
+- The Graph contract is used to verify follower counts (e.g., enforcing that an influencer meets the minimum follower requirement before their action counts) in a decentralized way. The ActionHub address connects Lentlify to the Lens platform so that user actions and campaign logic are linked on-chain.
+- Lens API Usage: On the frontend, Lentlify uses the Lens Protocol API and client libraries for seamless user experience. For example, it fetches Lens profile data by wallet address using the official Lens SDK
+- This allows the dApp to display user profiles, posts, and other Lens data. The Lens SDK also handles posting content or collecting content if needed (e.g., if an influencer needs to perform a mirror, it can be done via Lens APIs or transactions through the smart contract if configured as an action module).
 
-- **Lens SDK/API**:
-  - Fetches user profiles, post IDs, follower counts, etc.
-  - Ensures influencer eligibility via Lens Graph contract.
+### Tech Stack
+Lentlify is built with a modern web3 stack, combining smart contracts, Lens tools, and a robust frontend:
+Blockchain & Contracts: Solidity smart contracts (development with Hardhat). The project uses OpenZeppelin libraries for security (Ownable, ReentrancyGuard) and Lens-specific contracts for integration
 
----
+- Contracts are deployed on the Lens Mainnet for this hackathon demo, using an ERC20 token (e.g. “GHO” test token) as the payment currency.
+- Lens Protocol: Lens API & SDK – Lentlify integrates with Lens Protocol via the Lens SDK (@lens-protocol/client) for interacting with profiles and content, and uses Lens on-chain modules (ActionHub, social graph) for tying campaigns to Lens actions. This allows Lentlify to naturally plug into the Lens ecosystem of profiles and posts.
+- Frontend: React + TypeScript single-page application, bundled with Vite. The app uses Wagmi hooks and viem (ETH SDK) for blockchain interactions, and ConnectKit for wallet connectivity. Styling is done with Tailwind CSS (dark mode supported), giving the UI a clean, responsive design. The UI provides pages for creating campaigns, viewing wallet details, and browsing ongoing campaigns. 
+- Backend/Server: No traditional centralized backend is needed – the dApp is fully decentralized. However, the repository includes a Hardhat setup (in the server/ folder) for contract compilation, testing, and deployment scripts. All state and logic live on-chain in the smart contracts, and the app reads and writes data directly from the blockchain or via the Lens API and Lens Smart Wallet.
+- Libraries & Tools: Additional tools include OpenZeppelin for secure contract patterns, viem for contract calls, react-router for frontend routing, and TanStack React Query for caching queries. The project structure was bootstrapped with a React + Vite + TypeScript template.
 
 ## 🧰 Tech Stack
 
@@ -107,7 +115,7 @@ Influencer Participation: Influencers join campaigns by performing Lens social a
 | Lens Integration | Lens SDK, ActionHub, Social Graph               |
 | Frontend         | React, TypeScript, Vite, Tailwind CSS           |
 | Blockchain Tools | Wagmi, Viem, ethers.js, ConnectKit              |
-| Testing & Deploy | Hardhat, Lens Mainnet, ERC20 token (GRASS) |
+| Testing & Deploy | Hardhat, Lens Mainnet, ERC20 token () |
 
 ---
 
@@ -144,13 +152,13 @@ yarn dev
 
 <img width="1434" alt="Screenshot 2025-05-20 at 19 08 25" src="https:///user-attachments/assets/314cb85c-1aeb-4f08-8eb1-7ceb196cc610" />
 
-<img width="1434" alt="Screenshot 2025-05-20 at 19 08 25" src="https://github.com/user-attachments/assets/314cb85c-1aeb-4f08-8eb1-7ceb196cc610" />
+<img width="1434" alt="Screenshot 2025-05-20 at 19 08 25" src="https:///user-attachments/assets/314cb85c-1aeb-4f08-8eb1-7ceb196cc610" />
 
-<img width="1439" alt="Screenshot 2025-05-20 at 19 36 35" src="https://github.com/user-attachments/assets/1da47cad-ae29-4775-89a6-f937933daeea" />
+<img width="1439" alt="Screenshot 2025-05-20 at 19 36 35" src="https:///user-attachments/assets/1da47cad-ae29-4775-89a6-f937933daeea" />
 
-<img width="1108" alt="Screenshot 2025-05-20 at 19 36 49" src="https://github.com/user-attachments/assets/cf0a6080-b9d4-4fdc-a400-ed2c8f40a565" />
+<img width="1108" alt="Screenshot 2025-05-20 at 19 36 49" src="https:///user-attachments/assets/cf0a6080-b9d4-4fdc-a400-ed2c8f40a565" />
 
-<img width="1118" alt="Screenshot 2025-05-20 at 19 37 01" src="https://github.com/user-attachments/assets/366fbd91-887f-4e48-a173-f8fef0ede5d5" />
+<img width="1118" alt="Screenshot 2025-05-20 at 19 37 01" src="https:///user-attachments/assets/366fbd91-887f-4e48-a173-f8fef0ede5d5" />
 
 ## 🏆 Hackathon Submission
 
@@ -158,9 +166,9 @@ This project was built for the Lens Spring Hackathon 2025.
 
 
 ### 👨‍💻 Team
-- [whoisanku](https://www.github.com/whoisanku)
-- [adarshkunwar](https://www.github.com/adarshkunwar)
-- [yoges](https://www.github.com/Aryog)
+- [whoisanku](https://www./whoisanku)
+- [adarshkunwar](https://www./adarshkunwar)
+- [yoges](https://www./Aryog)
 
 
 
