@@ -7,7 +7,7 @@ import { UseAuth } from "@/context/auth/AuthContext";
 import { FiCopy } from "react-icons/fi";
 
 const WalletPage: React.FC = () => {
-  const { selectedAccount } = UseAuth();
+  const { selectedAccount, setSelectedAccount } = UseAuth();
   const [smartAccountAddress, setSmartAccountAddress] = useState<
     string | undefined
   >(() => {
@@ -18,18 +18,36 @@ const WalletPage: React.FC = () => {
 
   const { data: balanceData } = useBalance({
     address: smartAccountAddress as Address,
-    chainId: 11155111, // Sepolia testnet
+    chainId: 232,
   });
+
+  // Restore selectedAccount from localStorage on initial load if not already set
+  useEffect(() => {
+    if (!selectedAccount && localStorage.getItem("smartAccountAddress")) {
+      const savedAccount = localStorage.getItem("selectedAccount");
+      if (savedAccount) {
+        try {
+          const accountData = JSON.parse(savedAccount);
+          setSelectedAccount(accountData);
+        } catch (e) {
+          console.error("Failed to parse saved account data:", e);
+        }
+      }
+    }
+  }, [selectedAccount, setSelectedAccount]);
 
   useEffect(() => {
     if (selectedAccount?.address) {
       setSmartAccountAddress(selectedAccount.address);
       localStorage.setItem("smartAccountAddress", selectedAccount.address);
+      // Save the full account object for restoration
+      localStorage.setItem("selectedAccount", JSON.stringify(selectedAccount));
     } else {
       const savedAddress = localStorage.getItem("smartAccountAddress");
       if (!savedAddress) {
         setSmartAccountAddress(undefined);
         localStorage.removeItem("smartAccountAddress");
+        localStorage.removeItem("selectedAccount");
       }
     }
   }, [selectedAccount]);
