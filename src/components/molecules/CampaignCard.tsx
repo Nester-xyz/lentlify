@@ -13,7 +13,7 @@ const CampaignCard = ({
     <div>
       <div
         key={group.id}
-        className=" bg-white dark:bg-gray-800 rounded-lg shadow-md overflow-hidden hover:shadow-xl transition-shadow duration-300 ease-in-out"
+        className=" bg-white h-64 dark:bg-gray-800 rounded-lg shadow-md overflow-hidden hover:shadow-xl transition-shadow duration-300 ease-in-out"
         onClick={() =>
           navigate(`/campaign-group/${group.id}`, {
             state: { campaignGroup: group },

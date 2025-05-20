@@ -394,18 +394,18 @@ const Home = () => {
       pageHeading="Campaign Groups"
       rightSide={
         <>
-          <div className="flex space-x-3">
+          <div className="hidden md:flex space-x-3">
             <button
               onClick={() => navigate("/create")}
-              className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition flex items-center"
+              className=" px-2 py-1 md:px-4 md:py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition flex items-center"
             >
-              <FaPlus className="mr-2" /> Create Campaign
+              <FaPlus className="mr-2  hidden md:block" /> Create Campaign
             </button>
             <button
               onClick={() => navigate("/create-ad")}
-              className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition flex items-center"
+              className=" px-2 py-1 md:px-4 md:py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition flex items-center"
             >
-              <FaPlus className="mr-2" /> Create AD
+              <FaPlus className="mr-2  hidden md:block" /> Create AD
             </button>
           </div>
         </>
@@ -413,6 +413,21 @@ const Home = () => {
     >
       <div className="max-w-4xl mx-auto px-4">
         {/* Header with create buttons */}
+
+        <div className="md:hidden flex  justify-end space-x-3 py-2">
+          <button
+            onClick={() => navigate("/create")}
+            className="  px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition flex items-center"
+          >
+            <FaPlus className="mr-2 " /> Create Campaign
+          </button>
+          <button
+            onClick={() => navigate("/create-ad")}
+            className=" px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition flex items-center"
+          >
+            <FaPlus className="mr-2  " /> Create AD
+          </button>
+        </div>
 
         {/* Loading state */}
         {isLoading && (
@@ -449,9 +464,6 @@ const Home = () => {
 
         {/* Campaigns list */}
         <div className="space-y-6">
-          <h2 className="text-xl font-bold text-white mb-4">
-            Recent Campaigns
-          </h2>
           {campaigns.map((campaign) => (
             <div
               key={campaign.id}
