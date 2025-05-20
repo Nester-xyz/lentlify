@@ -38,6 +38,21 @@ export default function WalletSelector() {
   const APP_ID = import.meta.env.VITE_LENS_APP_ID;
   console.log(APP_ID);
 
+  // Restore account from localStorage on component mount
+  useEffect(() => {
+    if (!selectedAccount) {
+      const savedAccount = localStorage.getItem("selectedAccount");
+      if (savedAccount) {
+        try {
+          const accountData = JSON.parse(savedAccount);
+          setSelectedAccount(accountData);
+        } catch (e) {
+          console.error("Failed to parse saved account data:", e);
+        }
+      }
+    }
+  }, [selectedAccount, setSelectedAccount]);
+
   useEffect(() => {
     const fetchAccounts = async () => {
       if (address) {
@@ -95,6 +110,9 @@ export default function WalletSelector() {
         return;
       }
       login(authenticated.value);
+      // Save account to localStorage
+      localStorage.setItem("selectedAccount", JSON.stringify(account));
+      localStorage.setItem("smartAccountAddress", account.address);
       // Optionally: navigate or update global session context here
     } catch (err: any) {
       setError(err.message || "Login failed");
@@ -110,6 +128,9 @@ export default function WalletSelector() {
     logout();
     setSelectedAccount(null);
     setError(null);
+    // Clear localStorage data
+    localStorage.removeItem("selectedAccount");
+    localStorage.removeItem("smartAccountAddress");
   };
 
   const shown = ["familyAccountsProvider", "injected"]
