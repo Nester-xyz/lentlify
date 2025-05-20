@@ -34,8 +34,9 @@ export default function WalletSelector() {
 
   const { signMessageAsync } = useSignMessage();
 
-  //for testnet accounts
-  const TESTNET_APP = "0xC75A89145d765c396fd75CbD16380Eb184Bd2ca7";
+  // Use environment variables for app IDs
+  const APP_ID = import.meta.env.VITE_LENS_APP_ID;
+  console.log(APP_ID);
 
   useEffect(() => {
     const fetchAccounts = async () => {
@@ -83,7 +84,7 @@ export default function WalletSelector() {
       const authenticated = await client.login({
         accountOwner: {
           account: account.address,
-          app: TESTNET_APP,
+          app: APP_ID,
           owner: address,
         },
         signMessage: (message: string) => signMessageAsync({ message }),

@@ -6,9 +6,11 @@ import { chains } from "@lens-chain/sdk/viem";
 
 const config = createConfig(
   getDefaultConfig({
-    chains: [chains.testnet],
+    chains: [chains.mainnet],
     transports: {
-      [chains.testnet.id]: http("https://rpc.testnet.lens.dev"),
+      [chains.mainnet.id]: http(
+        "https://lens-mainnet.g.alchemy.com/v2/7YCBJn_-s2h9BA_r2-SWrcqsUqgWHqdR"
+      ),
     },
     walletConnectProjectId: import.meta.env.VITE_WALLETCONNECT_PROJECT_ID,
     appName: "Lentlify",

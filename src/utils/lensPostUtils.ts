@@ -9,12 +9,14 @@
  * @param postString The post string identifier from the campaign
  * @returns The numeric post ID as a BigInt
  */
-export async function fetchPostIdAsUint(postString: string): Promise<bigint | null> {
+export async function fetchPostIdAsUint(
+  postString: string
+): Promise<bigint | null> {
   try {
     // Use a direct GraphQL query instead of the client's fetchPost function
     // The Lens API endpoint - using the official API endpoint
-    const apiUrl = 'https://api.testnet.lens.xyz/graphql';
-    
+    const apiUrl = "https://api.lens.xyz/graphql";
+
     // The GraphQL query to get the post ID - using the specific query provided
     const query = `
       query Post($request: PostRequest!) {
@@ -25,45 +27,45 @@ export async function fetchPostIdAsUint(postString: string): Promise<bigint | nu
         }
       }
     `;
-    
+
     // The variables for the query - using the post string directly
-    console.log('Using post string:', postString);
-    
+    console.log("Using post string:", postString);
+
     const variables = {
       request: {
-        post: postString
-      }
+        post: postString,
+      },
     };
-    
-    console.log('Fetching post ID for post string:', postString);
-    
+
+    console.log("Fetching post ID for post string:", postString);
+
     // Make the API request
     const response = await fetch(apiUrl, {
-      method: 'POST',
+      method: "POST",
       headers: {
-        'Content-Type': 'application/json',
+        "Content-Type": "application/json",
       },
       body: JSON.stringify({
         query,
-        variables
-      })
+        variables,
+      }),
     });
-    
+
     // Parse the response
     const data = await response.json();
-    console.log('API response:', data);
-    
+    console.log("API response:", data);
+
     // Check if we got a valid post ID
     if (data?.data?.post?.id) {
       const postId = BigInt(data.data.post.id);
-      console.log('Fetched post UINT:', postId.toString());
+      console.log("Fetched post UINT:", postId.toString());
       return postId;
     } else {
-      console.error('Failed to fetch post ID:', data);
+      console.error("Failed to fetch post ID:", data);
       return null;
     }
   } catch (error) {
-    console.error('Error fetching post ID:', error);
+    console.error("Error fetching post ID:", error);
     return null;
   }
 }
@@ -74,5 +76,5 @@ export async function fetchPostIdAsUint(postString: string): Promise<bigint | nu
  * @returns The post ID as a hex string
  */
 export function postIdToHex(postId: bigint): string {
-  return '0x' + postId.toString(16).padStart(64, '0');
+  return "0x" + postId.toString(16).padStart(64, "0");
 }

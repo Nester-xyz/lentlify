@@ -745,20 +745,20 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@lens-protocol/client@npm:^0.0.0-canary-20250430134539":
-  version: 0.0.0-paul-20250315192609
-  resolution: "@lens-protocol/client@npm:0.0.0-paul-20250315192609"
+"@lens-protocol/client@npm:latest":
+  version: 0.0.0-canary-20250430134539
+  resolution: "@lens-protocol/client@npm:0.0.0-canary-20250430134539"
   dependencies:
-    "@lens-protocol/env": 0.0.0-paul-20250315192609
-    "@lens-protocol/graphql": 0.0.0-paul-20250315192609
-    "@lens-protocol/storage": 0.0.0-paul-20250315192609
-    "@lens-protocol/types": 0.0.0-paul-20250315192609
+    "@lens-protocol/env": 0.0.0-canary-20250430134539
+    "@lens-protocol/graphql": 0.0.0-canary-20250430134539
+    "@lens-protocol/storage": 0.0.0-canary-20250430134539
+    "@lens-protocol/types": 0.0.0-canary-20250430134539
     "@urql/core": ^5.0.8
     "@urql/exchange-auth": ^2.2.0
+    graphql: ^16.9.0
     jwt-decode: ^4.0.0
-    loglevel: ^1.9.2
   peerDependencies:
-    "@lens-chain/sdk": "*"
+    "@lens-chain/sdk": ^1.0.0
     ethers: ^6.13.4
     viem: ^2.21.53
     zksync-ethers: ^6.15.3
@@ -771,28 +771,28 @@ __metadata:
       optional: true
     zksync-ethers:
       optional: true
-  checksum: ec7ea8a0152fd83279728117bf5e30a69346b45c2bdd12d91383035da306386f291ac124f63dd034a4f4d763ef74fb9284742669fc684bc082ab7fc32b95d41d
+  checksum: 8ac854c5122a7b00c84b246a12b3e8258da8f8447164a4b4ee3929b8d03c5c09f5e13d8a782b72bc032b0b76154cebbd5fd68fb87c290c5b3715fc21d7111d85
   languageName: node
   linkType: hard
 
-"@lens-protocol/env@npm:0.0.0-paul-20250315192609":
-  version: 0.0.0-paul-20250315192609
-  resolution: "@lens-protocol/env@npm:0.0.0-paul-20250315192609"
+"@lens-protocol/env@npm:0.0.0-canary-20250430134539":
+  version: 0.0.0-canary-20250430134539
+  resolution: "@lens-protocol/env@npm:0.0.0-canary-20250430134539"
   dependencies:
-    "@lens-protocol/types": 0.0.0-paul-20250315192609
-  checksum: 621d7a9a42cf714e73b793b60e70a9085f1d12a6bfd689c25272cf7e949f9299508709777b3ab829d232efd8c8b2e6991bb000e20da4f699b93b442028583189
+    "@lens-protocol/types": 0.0.0-canary-20250430134539
+  checksum: d695e7a681072d03691e698d4455ac08b4e3646ef73fe4e8e374c8c0a35ed7970918a74c131744b15995ee303e44ab7de95f2a27fe426a23ace04cd35eac1bd3
   languageName: node
   linkType: hard
 
-"@lens-protocol/graphql@npm:0.0.0-paul-20250315192609":
-  version: 0.0.0-paul-20250315192609
-  resolution: "@lens-protocol/graphql@npm:0.0.0-paul-20250315192609"
+"@lens-protocol/graphql@npm:0.0.0-canary-20250430134539":
+  version: 0.0.0-canary-20250430134539
+  resolution: "@lens-protocol/graphql@npm:0.0.0-canary-20250430134539"
   dependencies:
-    "@lens-protocol/types": 0.0.0-paul-20250315192609
+    "@lens-protocol/types": 0.0.0-canary-20250430134539
     gql.tada: ^1.8.10
     graphql: ^16.9.0
     type-fest: ^4.26.1
-  checksum: 221224efab9db2903c7dc607fd610daa3a7dc18fea7b319d534bc2506dcac1fe6347b83231a1cba161e6b14ccd9ce513c0b8104037a500ae4459cd1223efbb46
+  checksum: ed5603c74ed5a3c875ebd50ceccf60289584a19bd1b61d46495ca81d0b046126e077c17da7e42c4eabd1baf81089670a99775bff0488ef228b3a8f32266c4c51
   languageName: node
   linkType: hard
 
@@ -819,23 +819,23 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@lens-protocol/storage@npm:0.0.0-paul-20250315192609":
-  version: 0.0.0-paul-20250315192609
-  resolution: "@lens-protocol/storage@npm:0.0.0-paul-20250315192609"
+"@lens-protocol/storage@npm:0.0.0-canary-20250430134539":
+  version: 0.0.0-canary-20250430134539
+  resolution: "@lens-protocol/storage@npm:0.0.0-canary-20250430134539"
   dependencies:
-    "@lens-protocol/types": 0.0.0-paul-20250315192609
+    "@lens-protocol/types": 0.0.0-canary-20250430134539
     zod: ^3.23.8
-  checksum: 386be7504131fc1705a46d3dda2f2ff5e7f6329b98cda40c398cdab01202acd25fc771ea11365473e5f7fdd082bfc6c618588f1dd0c4d13baef255887060e78d
+  checksum: 4d45e0d027d79c653119a4e4771ac2655e8ba732f5635ae34d3f68b6fbb79bd9769656dc9a3475700456a98fccac32ce7f262fe0b8ed938776e4fe317b9b390f
   languageName: node
   linkType: hard
 
-"@lens-protocol/types@npm:0.0.0-paul-20250315192609":
-  version: 0.0.0-paul-20250315192609
-  resolution: "@lens-protocol/types@npm:0.0.0-paul-20250315192609"
+"@lens-protocol/types@npm:0.0.0-canary-20250430134539":
+  version: 0.0.0-canary-20250430134539
+  resolution: "@lens-protocol/types@npm:0.0.0-canary-20250430134539"
   dependencies:
     neverthrow: ^8.0.0
     type-fest: ^4.26.1
-  checksum: ae310f44c5fc310109541698cc24f140fc6c2972999ca602ada8fc9fb00353902c4a3b5030a7a029ac62e6fcc32243ddb3101326934111fe05cce6faee7fcb00
+  checksum: ff1b25c8408f317cbab83fa85a1e3a2f260d2dd871fdaf5abed1de6e2166ad50b9488f2912ca79a062ec1828d473152f128334d6b3d523aeb41016fd5f52b521
   languageName: node
   linkType: hard
 
@@ -4710,7 +4710,7 @@ __metadata:
     "@heroicons/react": ^2.2.0
     "@lens-chain/sdk": ^1.0.3
     "@lens-chain/storage-client": ^1.0.4
-    "@lens-protocol/client": ^0.0.0-canary-20250430134539
+    "@lens-protocol/client": latest
     "@lens-protocol/metadata": ^2.0.0
     "@lens-protocol/storage-node-client": ^0.0.0-latest-20241209200445
     "@radix-ui/react-slot": ^1.2.2
@@ -4930,13 +4930,6 @@ __metadata:
   version: 4.17.21
   resolution: "lodash@npm:4.17.21"
   checksum: eb835a2e51d381e561e508ce932ea50a8e5a68f4ebdd771ea240d3048244a8d13658acbd502cd4829768c56f2e16bdd4340b9ea141297d472517b83868e677f7
-  languageName: node
-  linkType: hard
-
-"loglevel@npm:^1.9.2":
-  version: 1.9.2
-  resolution: "loglevel@npm:1.9.2"
-  checksum: 896c67b90a507bfcfc1e9a4daa7bf789a441dd70d95cd13b998d6dd46233a3bfadfb8fadb07250432bbfb53bf61e95f2520f9b11f9d3175cc460e5c251eca0af
   languageName: node
   linkType: hard
 

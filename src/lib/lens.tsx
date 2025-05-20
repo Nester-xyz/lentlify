@@ -2,7 +2,7 @@ import { mainnet, PublicClient, staging } from "@lens-protocol/client";
 import { StorageClient, immutable } from "@lens-chain/storage-client";
 import { fetchAccount } from "@lens-protocol/client/actions";
 
-export const client:any = PublicClient.create({
+export const client: any = PublicClient.create({
   environment: mainnet,
 
   storage: window.localStorage,
