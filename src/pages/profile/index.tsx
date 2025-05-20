@@ -324,13 +324,8 @@ const Profile = () => {
                 postId: campaignInfo.postId,
                 actionType: actionTypeValue as ActionType,
                 hasClaimedReward: !!claimed, // Ensure boolean type
-                // Use the appropriate reward amount based on action type
-                rewardAmount:
-                  actionTypeValue === ActionType.COMMENT
-                    ? campaignInfo.commentReward
-                    : actionTypeValue === ActionType.QUOTE
-                    ? campaignInfo.quoteReward
-                    : campaignInfo.likeReward,
+                // Always use likeReward for all action types
+                rewardAmount: campaignInfo.likeReward,
                 endTime: campaignInfo.endTime,
                 // Use the reward claimable time from the contract
                 rewardClaimableTime: calculatedRewardClaimableTime,
@@ -818,7 +813,7 @@ const Profile = () => {
                       {/* Reward amount */}
                       <div className="mt-4">
                         <div className="text-green-400 font-medium">
-                          {interaction.rewardAmount
+                          Reward: {interaction.rewardAmount
                             ? (Number(interaction.rewardAmount) / 1e18).toFixed(
                                 4
                               )
