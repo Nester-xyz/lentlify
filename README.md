@@ -1,54 +1,129 @@
-# React + TypeScript + Vite
+# Lentlify – Decentralized Ad Campaigns on Lens Protocol
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+<img width="1437" alt="Screenshot 2025-05-20 at 19 03 00" src="https://github.com/user-attachments/assets/abff9a9c-27fb-45f9-9736-21cffbc1ffa8" />
 
-Currently, two official plugins are available:
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+**Lentlify** is a decentralized advertising platform built on the Lens Protocol that lets advertisers create on-chain ad campaigns and influencers earn rewards for promoting content. It leverages smart contracts to ensure campaign creation is transparent, trustless, and composable within the Lens ecosystem.
 
-## Expanding the ESLint configuration
+---
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+## 🚀 Project Purpose
 
-```js
-export default tseslint.config({
-  extends: [
-    // Remove ...tseslint.configs.recommended and replace with this
-    ...tseslint.configs.recommendedTypeChecked,
-    // Alternatively, use this for stricter rules
-    ...tseslint.configs.strictTypeChecked,
-    // Optionally, add this for stylistic rules
-    ...tseslint.configs.stylisticTypeChecked,
-  ],
-  languageOptions: {
-    // other options...
-    parserOptions: {
-      project: ['./tsconfig.node.json', './tsconfig.app.json'],
-      tsconfigRootDir: import.meta.dirname,
-    },
-  },
-})
+Lentlify’s mission is to make digital advertising **open and user-driven**. Using Lentlify, advertisers can launch ad **Campaign Groups** and specific **Promotional Campaigns** on Lens in a decentralized way.
+
+- **Campaign Groups & Promotions**:
+
+  - `CampaignGroupCreated` – Emitted when a new campaign group is created.
+  - `CampaignCreated` – Emitted when individual promotions inside the group are launched.
+
+- **Why it matters**:
+  - Trustless and composable.
+  - Incentivizes user engagement via on-chain rewards.
+  - Fits seamlessly into the Lens ecosystem.
+
+---
+
+## 🧠 Contract Documentation
+
+### ✳️ Core Features
+
+- **Advertisers** can:
+  - Create grouped campaigns with budgets, rewards, durations, and participant rules.
+  - Extend, update, or cancel campaigns on-chain.
+- **Influencers** can:
+
+  - Participate using actions like _Mirror_, _Comment_, or _Quote_ on Lens posts.
+  - Claim automatic on-chain rewards based on participation.
+
+- **Platform**:
+  - Collects a small configurable fee (e.g., 5%) per campaign.
+  - Admins can update fee settings and withdraw collected fees.
+
+---
+
+### 🔔 Key Events
+
+| Event                    | Description                              |
+| ------------------------ | ---------------------------------------- |
+| `CampaignGroupCreated`   | A new ad group has been initiated        |
+| `CampaignCreated`        | A new promotion is created under a group |
+| `InfluencerParticipated` | A user has participated via Lens action  |
+| `RewardPaid`             | Rewards distributed to influencer        |
+| `FeesCollected`          | Platform fee withdrawn                   |
+| `PlatformFeeUpdated`     | Admin updated platform fee               |
+| `DepositsRefunded`       | Campaign cancelled and refund triggered  |
+
+---
+
+### 🛠️ Lens Protocol Integration
+
+- **Lens Modules**:
+
+  - Uses `BaseAction` for Lens ActionHub integration.
+  - Hooks into Lens posts and profile actions for campaign verification.
+
+- **Lens SDK/API**:
+  - Fetches user profiles, post IDs, follower counts, etc.
+  - Ensures influencer eligibility via Lens Graph contract.
+
+---
+
+## 🧰 Tech Stack
+
+| Layer            | Tools / Libraries                               |
+| ---------------- | ----------------------------------------------- |
+| Smart Contract   | Solidity, Hardhat, OpenZeppelin                 |
+| Lens Integration | Lens SDK, ActionHub, Social Graph               |
+| Frontend         | React, TypeScript, Vite, Tailwind CSS           |
+| Blockchain Tools | Wagmi, Viem, ethers.js, ConnectKit              |
+| Testing & Deploy | Hardhat, Sepolia (testnet), ERC20 token (GRASS) |
+
+---
+
+## ⚙️ Getting Started
+
+```bash
+# Clone the repository
+git clone https://github.com/Nester-xyz/lentlify.git
+cd lentlify
+
+# Install frontend dependencies
+yarn install
+
+# Install contract dependencies
+cd server
+yarn install
+cd ..
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+## 🔑 Environment Setup
+Rename .env.example to .env and add:
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
-
-export default tseslint.config({
-  plugins: {
-    // Add the react-x and react-dom plugins
-    'react-x': reactX,
-    'react-dom': reactDom,
-  },
-  rules: {
-    // other rules...
-    // Enable its recommended typescript rules
-    ...reactX.configs['recommended-typescript'].rules,
-    ...reactDom.configs.recommended.rules,
-  },
-})
+```bash
+VITE_WALLETCONNECT_PROJECT_ID=your_walletconnect_id
 ```
+
+## ▶️ Run Frontend
+
+```bash
+yarn dev
+```
+## 📸 Demo Screenshots
+
+<img width="1434" alt="Screenshot 2025-05-20 at 19 08 25" src="https://github.com/user-attachments/assets/314cb85c-1aeb-4f08-8eb1-7ceb196cc610" />
+
+## 🏆 Hackathon Submission
+
+This project was built for the LensPool Hackathon 2025.
+
+### 👨‍💻 Team
+-whoisanku  
+-alexcommoner  
+-yoges  
+
+
+
+
+
+
+
