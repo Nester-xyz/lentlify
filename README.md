@@ -9,7 +9,18 @@
 
 ## 🚀 Project Purpose
 
-Lentlify’s mission is to make digital advertising **open and user-driven**. Using Lentlify, advertisers can launch ad **Campaign Groups** and specific **Promotional Campaigns** on Lens in a decentralized way.
+**Lentlify’s** mission is to make digital advertising open and user-driven. Using Lentlify, advertisers (content creators or brands) can launch ad campaign groups and specific promotional campaigns on Lens in a decentralized manner:  
+  
+- Campaign Groups & Promotions: Advertisers organize their promotions by first creating a Campaign Group, which emits a CampaignGroupCreated event on-chain  
+  
+- Within each group, individual ad promotions are launched as campaigns, each emitting a CampaignCreated event
+   
+- These events make it easy for anyone (or any service) to track new campaigns in real time.     
+    
+- Transparent & Composable: All campaign data (budgets, rewards, participants, etc.) lives on smart contracts, making the process transparent. Because campaigns are on-chain, other dApps or analytics (e.g. a Lens feed or a subgraph) can permissionlessly plug into Lentlify’s data. This composability means the advertising campaigns can be extended or integrated into other platforms seamlessly.  
+   
+- Empowering Users: Advertisers gain a trustless way to boost their content (no centralized platform controls the campaign), and influencers (Lens content creators) can directly earn rewards by sharing or engaging with promoted content. The use of smart contracts guarantees that once conditions are met, rewards can be claimed without middlemen.  
+
 
 - **Campaign Groups & Promotions**:
 
