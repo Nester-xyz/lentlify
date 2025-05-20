@@ -1,10 +1,6 @@
-
-<img width="1437" alt="Screenshot 2025-05-20 at 19 03 00" src="https:///user-attachments/assets/abff9a9c-27fb-45f9-9736-21cffbc1ffa8" />
-
 # Lentlify – Decentralized Ad Campaigns on Lens Protocol
 
-<img width="1437" alt="Screenshot 2025-05-20 at 19 03 00" src="https:///user-attachments/assets/abff9a9c-27fb-45f9-9736-21cffbc1ffa8" />
-
+<img width="1437" alt="Screenshot 2025-05-20 at 19 03 00" src="https://github.com/user-attachments/assets/dde6486f-7f11-4ef2-b3bc-55fb88f2be3c" />
 
 **Lentlify** is a decentralized advertising platform built on the Lens Protocol that lets advertisers create on-chain ad campaigns and influencers earn rewards for promoting content. It leverages smart contracts to ensure campaign creation is transparent, trustless, and composable within the Lens ecosystem.
 
@@ -101,7 +97,7 @@ The smart contract inherits Lens’s BaseAction module to hook into the Lens Act
 Lentlify is built with a modern web3 stack, combining smart contracts, Lens tools, and a robust frontend:
 Blockchain & Contracts: Solidity smart contracts (development with Hardhat). The project uses OpenZeppelin libraries for security (Ownable, ReentrancyGuard) and Lens-specific contracts for integration
 
-- Contracts are deployed on the Lens Mainnet for this hackathon demo, using an ERC20 token (e.g. “GHO” test token) as the payment currency.
+- Contracts are deployed on the Lens Mainnet for this hackathon demo, using an ERC20 token (GHO TOKEN) as the native token.
 - Lens Protocol: Lens API & SDK – Lentlify integrates with Lens Protocol via the Lens SDK (@lens-protocol/client) for interacting with profiles and content, and uses Lens on-chain modules (ActionHub, social graph) for tying campaigns to Lens actions. This allows Lentlify to naturally plug into the Lens ecosystem of profiles and posts.
 - Frontend: React + TypeScript single-page application, bundled with Vite. The app uses Wagmi hooks and viem (ETH SDK) for blockchain interactions, and ConnectKit for wallet connectivity. Styling is done with Tailwind CSS (dark mode supported), giving the UI a clean, responsive design. The UI provides pages for creating campaigns, viewing wallet details, and browsing ongoing campaigns. 
 - Backend/Server: No traditional centralized backend is needed – the dApp is fully decentralized. However, the repository includes a Hardhat setup (in the server/ folder) for contract compilation, testing, and deployment scripts. All state and logic live on-chain in the smart contracts, and the app reads and writes data directly from the blockchain or via the Lens API and Lens Smart Wallet.
@@ -150,15 +146,13 @@ yarn dev
 ```
 ## 📸 Demo Screenshots
 
-<img width="1434" alt="Screenshot 2025-05-20 at 19 08 25" src="https:///user-attachments/assets/314cb85c-1aeb-4f08-8eb1-7ceb196cc610" />
 
-<img width="1434" alt="Screenshot 2025-05-20 at 19 08 25" src="https:///user-attachments/assets/314cb85c-1aeb-4f08-8eb1-7ceb196cc610" />
+<img width="1108" alt="Screenshot 2025-05-20 at 19 36 49" src="https://github.com/user-attachments/assets/bddfa1f8-7930-4846-8987-65ee1e7fd50c" />
 
-<img width="1439" alt="Screenshot 2025-05-20 at 19 36 35" src="https:///user-attachments/assets/1da47cad-ae29-4775-89a6-f937933daeea" />
+<img width="1118" alt="Screenshot 2025-05-20 at 19 37 01" src="https://github.com/user-attachments/assets/74a570b9-2b3d-40c5-b67f-286d10b6ceff" />
 
-<img width="1108" alt="Screenshot 2025-05-20 at 19 36 49" src="https:///user-attachments/assets/cf0a6080-b9d4-4fdc-a400-ed2c8f40a565" />
+<img width="1439" alt="Screenshot 2025-05-20 at 19 36 35" src="https://github.com/user-attachments/assets/cd262066-d24a-4127-8289-fd823606faca" />
 
-<img width="1118" alt="Screenshot 2025-05-20 at 19 37 01" src="https:///user-attachments/assets/366fbd91-887f-4e48-a173-f8fef0ede5d5" />
 
 ## 🏆 Hackathon Submission
 
@@ -166,9 +160,9 @@ This project was built for the Lens Spring Hackathon 2025.
 
 
 ### 👨‍💻 Team
-- [whoisanku](https://www./whoisanku)
-- [adarshkunwar](https://www./adarshkunwar)
-- [yoges](https://www./Aryog)
+- [whoisanku](https://hey.xyz/u/whoisanku)
+- adarshkunwar
+- [yoges](https://hey.xyz/u/yoges)
 
 
 
