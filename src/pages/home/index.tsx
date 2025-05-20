@@ -513,8 +513,8 @@ const Home = () => {
 
   return (
     <Page
-      title="Campaign Groups"
-      pageHeading="Campaign Groups"
+      title="Active Promotions"
+      pageHeading="Active Promotions"
       rightSide={
         <>
           <div className="hidden md:flex space-x-3">
@@ -586,10 +586,7 @@ const Home = () => {
         )}
 
         {/* Campaigns list */}
-        <div className="space-y-6">
-          <h2 className="text-xl font-bold text-white mb-4">
-            Recent Campaigns
-          </h2>
+        <div className="space-y-6 mt-2">
           {campaigns.map((campaign) => (
             <div
               key={campaign.id}
