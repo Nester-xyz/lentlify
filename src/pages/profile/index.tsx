@@ -818,7 +818,6 @@ const Profile = () => {
                       {/* Reward amount */}
                       <div className="mt-4">
                         <div className="text-green-400 font-medium">
-                          Reward:{" "}
                           {interaction.rewardAmount
                             ? (Number(interaction.rewardAmount) / 1e18).toFixed(
                                 4
