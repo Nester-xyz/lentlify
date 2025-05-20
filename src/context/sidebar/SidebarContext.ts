@@ -3,6 +3,7 @@ import { createContext, useContext } from "react";
 export type SidebarContextType = {
   sidebarLeftIsVisible: boolean;
   sidebarRightIsVisible: boolean;
+  isMobile: boolean;
   toggleSidebarLeft: () => void;
   openSidebarRight: () => void;
   closeSidebarLeft: () => void;

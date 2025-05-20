@@ -1,4 +1,3 @@
-import { Suspense } from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
 import { RouteList } from "./RouteList";
 import Loading from "../pages/loading";
@@ -16,39 +15,33 @@ const MainRoute = () => {
   }
 
   return (
-    <Suspense fallback={<Loading />}>
-      <Routes>
-        <Route
-          path="/login"
-          element={isAuthorized ? <Navigate to="/" replace /> : <Login />}
-        />
-        <Route
-          path="/register"
-          element={isAuthorized ? <Navigate to="/" replace /> : <Register />}
-        />
+    <Routes>
+      <Route
+        path="/login"
+        element={isAuthorized ? <Navigate to="/" replace /> : <Login />}
+      />
+      <Route
+        path="/register"
+        element={isAuthorized ? <Navigate to="/" replace /> : <Register />}
+      />
 
-        <Route element={<SidebarLayout />}>
-          {RouteList.map((item, index) => {
-            const Component = item.location;
-            return (
-              <Route
-                key={index}
-                path={item.path}
-                element={
-                  !isAuthorized ? (
-                    <Navigate to="/login" replace />
-                  ) : (
-                    <Component />
-                  )
-                }
-              />
-            );
-          })}
-        </Route>
+      <Route element={<SidebarLayout />}>
+        {RouteList.map((item, index) => {
+          const Component = item.location;
+          return (
+            <Route
+              key={index}
+              path={item.path}
+              element={
+                !isAuthorized ? <Navigate to="/login" replace /> : <Component />
+              }
+            />
+          );
+        })}
+      </Route>
 
-        <Route path="*" element={<NoPage />} />
-      </Routes>
-    </Suspense>
+      <Route path="*" element={<NoPage />} />
+    </Routes>
   );
 };
 

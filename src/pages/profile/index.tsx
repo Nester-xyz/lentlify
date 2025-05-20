@@ -6,6 +6,7 @@ import { useAccount } from "wagmi";
 import { FaPlus } from "react-icons/fa";
 import { FiExternalLink } from "react-icons/fi";
 import { storageClient } from "@/lib/lens";
+import Page from "@/components/molecules/Page";
 
 // Define types for campaign group data
 interface CampaignGroupData {
@@ -362,7 +363,6 @@ const Profile = () => {
 
         // Get all group IDs for the current user
         const groupIds = (await getSellerCampaignGroups(
-          formattedAddress
         )) as unknown as bigint[];
         console.log("Group IDs:", groupIds);
 
@@ -543,79 +543,84 @@ const Profile = () => {
   ]);
 
   return (
-    <div className="max-w-4xl mx-auto py-8 px-4">
-      {/* Profile Section */}
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg overflow-hidden mb-8">
-        {/* Cover and Profile Picture */}
-        <div
-          className="relative h-48 bg-gray-200 dark:bg-gray-700 bg-cover bg-center"
-          style={
-            profile.coverPicture
-              ? { backgroundImage: `url(${profile.coverPicture})` }
-              : undefined
-          }
-        >
-          <div className="absolute -bottom-16 left-8">
-            <div className="relative">
-              <div className="h-32 w-32 rounded-full border-4 border-white dark:border-gray-800 bg-gray-200 dark:bg-gray-700 flex items-center justify-center overflow-hidden">
-                {profile.image ? (
-                  <img
-                    src={profile.image}
-                    alt={profile.name}
-                    className="h-full w-full object-cover"
-                  />
-                ) : (
-                  <div className="h-full w-full bg-gray-400 flex items-center justify-center text-white font-bold">
-                    {profile.name.charAt(0).toUpperCase()}
-                  </div>
-                )}
+    <Page pageHeading="Profile" title="Profile">
+      <div className="max-w-4xl mx-auto py-8 px-4">
+        {/* Profile Section */}
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg overflow-hidden mb-8">
+          {/* Cover and Profile Picture */}
+          <div
+            className="relative h-48 bg-gray-200 dark:bg-gray-700 bg-cover bg-center"
+            style={
+              profile.coverPicture
+                ? { backgroundImage: `url(${profile.coverPicture})` }
+                : undefined
+            }
+          >
+            <div className="absolute -bottom-16 left-8">
+              <div className="relative">
+                <div className="h-32 w-32 rounded-full border-4 border-white dark:border-gray-800 bg-gray-200 dark:bg-gray-700 flex items-center justify-center overflow-hidden">
+                  {profile.image ? (
+                    <img
+                      src={profile.image}
+                      alt={profile.name}
+                      className="h-full w-full object-cover"
+                    />
+                  ) : (
+                    <div className="h-full w-full bg-gray-400 flex items-center justify-center text-white font-bold">
+                      {profile.name.charAt(0).toUpperCase()}
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
           </div>
-        </div>
 
-        {/* Profile Info */}
-        <div className="pt-20 px-8 pb-8">
-          <div className="flex justify-between items-start mb-4">
-            <div>
-              <h1 className="text-2xl font-bold text-gray-800 dark:text-white">
-                {profile.name}
-              </h1>
-              <p className="text-sm text-gray-500 dark:text-gray-400">
-                Joined: {new Date(profile.createdAt).toLocaleDateString()}
-              </p>
+          {/* Profile Info */}
+          <div className="pt-20 px-8 pb-8">
+            <div className="flex justify-between items-start mb-4">
+              <div>
+                <h1 className="text-2xl font-bold text-gray-800 dark:text-white">
+                  {profile.name}
+                </h1>
+                <p className="text-sm text-gray-500 dark:text-gray-400">
+                  Joined: {new Date(profile.createdAt).toLocaleDateString()}
+                </p>
+              </div>
+            </div>
+
+            {/* Bio */}
+            <div className="mb-6">
+              {profile.bio && (
+                <p className="text-gray-700 dark:text-gray-300">
+                  {profile.bio}
+                </p>
+              )}
             </div>
           </div>
-
-          {/* Bio */}
-          <div className="mb-6">
-            {profile.bio && (
-              <p className="text-gray-700 dark:text-gray-300">{profile.bio}</p>
-            )}
-          </div>
         </div>
-      </div>
 
-      {/* Campaign Groups Section */}
-      <div>
-        {/* Header with create buttons */}
-        <div className="flex justify-between items-center mb-8">
-          <h1 className="text-2xl font-bold text-white">My Campaign Groups</h1>
-          <div className="flex space-x-3">
-            <button
-              onClick={() => navigate("/create")}
-              className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition flex items-center"
-            >
-              <FaPlus className="mr-2" /> Create Campaign
-            </button>
-            {/* <button
+        {/* Campaign Groups Section */}
+        <div>
+          {/* Header with create buttons */}
+          <div className="flex justify-between items-center mb-8">
+            <h1 className="text-2xl font-bold text-white">
+              My Campaign Groups
+            </h1>
+            <div className="flex space-x-3">
+              <button
+                onClick={() => navigate("/create")}
+                className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition flex items-center"
+              >
+                <FaPlus className="mr-2" /> Create Campaign
+              </button>
+              {/* <button
               onClick={() => navigate("/create-ad")}
               className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition flex items-center"
             >
               <FaPlus className="mr-2" /> Create AD
             </button> */}
+            </div>
           </div>
-        </div>
 
         {/* Tab Navigation */}
         <div className="flex border-b border-gray-700 mb-8 mt-8">
@@ -852,12 +857,12 @@ const Profile = () => {
                 <div className="absolute -top-16 left-6 w-32 h-32 rounded-full border-4 border-gray-800 overflow-hidden bg-gray-700">
                   {group.metadata?.profilePhoto ? (
                     <img
-                      src={group.metadata.profilePhoto}
-                      alt="Profile"
+                      src={group.metadata.coverPhoto}
+                      alt="Cover"
                       className="w-full h-full object-cover"
                     />
                   ) : (
-                    <div className="w-full h-full bg-gradient-to-r from-blue-500 to-purple-500"></div>
+                    <div className="w-full h-full bg-gradient-to-r from-blue-900 to-purple-900"></div>
                   )}
                 </div>
 
@@ -894,6 +899,7 @@ const Profile = () => {
       </div>
     </div>
     </div>
+    </Page>
   );
 };
 

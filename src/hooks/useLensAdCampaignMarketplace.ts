@@ -50,54 +50,37 @@ export enum ActionType {
 // Function to approve token spending
 export const useTokenApproval = () => {
   const { writeContract: writeApprove } = useWriteContract();
- 
   const { address: accountAddress } = useAccount();
-  
   const approveTokenSpending = async (amount: bigint) => {
     try {
-      // Only approve the exact amount needed, not unlimited
-      console.log(`Approving exact amount: ${amount} tokens for contract: ${CONTRACT_ADDRESS}`);
-      console.log(`Using token at address: ${paymentTokenAddress}`);
-      
       if (!accountAddress) {
-        console.error('Account address not available');
-        throw new Error('Wallet not connected properly');
+        throw new Error("Wallet not connected properly");
       }
-      
-      // Skip allowance check since this token might not support standard ERC20 allowance function
-      
-      // Use a direct ERC20 approve call with higher gas limit
       const result = await writeApprove({
         address: paymentTokenAddress as `0x${string}`,
         abi: [
           {
             inputs: [
               { name: "spender", type: "address" },
-              { name: "amount", type: "uint256" }
+              { name: "amount", type: "uint256" },
             ],
             name: "approve",
             outputs: [{ name: "", type: "bool" }],
             stateMutability: "nonpayable",
-            type: "function"
-          }
+            type: "function",
+          },
         ],
-        functionName: 'approve',
-        args: [
-          CONTRACT_ADDRESS as `0x${string}`,
-          amount
-        ],
+        functionName: "approve",
+        args: [CONTRACT_ADDRESS as `0x${string}`, amount],
         // Use higher gas limit for Lens token
         gas: 300000n,
       });
-      
-      console.log('Approval transaction result:', result);
       return result;
     } catch (error: any) {
-      console.error('Error approving token spending:', error);
+      console.error("Error approving token spending:", error);
       throw error;
     }
   };
-  
   return { approveTokenSpending };
 };
 
@@ -106,78 +89,78 @@ export const useLensAdCampaignMarketplace = () => {
   const { address } = useAccount();
   const { activeLensAddress } = useSessionClient();
   const publicClient = usePublicClient();
-  const {profile} = UseAuth();
+  const { profile } = UseAuth();
 
   const { data: balance } = useBalance({
     address: profile?.address as Address,
   });
-  
+
   // Check if we should use Lens account
   const useLensAccount = !!profile?.address;
-  
+
   // Log the addresses being used
   useEffect(() => {
     if (useLensAccount) {
-      console.log('Using Lens smart wallet address:', profile?.address);
-      console.log('Connected wallet address:', address);
+      console.log("Using Lens smart wallet address:", profile?.address);
+      console.log("Connected wallet address:", address);
     }
   }, [useLensAccount, profile?.address, address]);
 
   // Read functions
   const { data: platformFeePercentage } = useReadContract({
     ...lensAdCampaignConfig,
-    functionName: 'platformFeePercentage',
+    functionName: "platformFeePercentage",
   });
 
   const { data: totalFeesCollected } = useReadContract({
     ...lensAdCampaignConfig,
-    functionName: 'totalFeesCollected',
+    functionName: "totalFeesCollected",
   });
 
   const { data: campaignCounter } = useReadContract({
     ...lensAdCampaignConfig,
-    functionName: 'campaignCounter',
+    functionName: "campaignCounter",
   });
 
   // Function to get the total number of ad campaigns created
   const getCampaignAdCount = async () => {
     try {
       if (!publicClient) {
-        console.error('Public client not available');
+        console.error("Public client not available");
         return 0;
       }
       const count = await publicClient.readContract({
         ...lensAdCampaignConfig,
-        functionName: 'getCampaignAdCount',
+        functionName: "getCampaignAdCount",
       });
       return count;
     } catch (error) {
-      console.error('Error getting campaign ad count:', error);
+      console.error("Error getting campaign ad count:", error);
       return 0;
     }
   };
-  
+
   // Function to get the total number of campaign groups created
   const getCampaignGroupCount = async () => {
     try {
       if (!publicClient) {
-        console.error('Public client not available');
+        console.error("Public client not available");
         return 0;
       }
       const count = await publicClient.readContract({
         ...lensAdCampaignConfig,
-        functionName: 'getCampaignGroupCount',
+        functionName: "getCampaignGroupCount",
       });
       return count;
     } catch (error) {
-      console.error('Error getting campaign group count:', error);
+      console.error("Error getting campaign group count:", error);
       return 0;
     }
   };
 
   const { data: groupCounter } = useReadContract({
     ...lensAdCampaignConfig,
-    functionName: 'groupCounter',
+    functionName: "groupCounter",
   });
 
   // Function to get campaign details
@@ -185,12 +168,12 @@ export const useLensAdCampaignMarketplace = () => {
     try {
       const data = await publicClient!.readContract({
         ...lensAdCampaignConfig,
-        functionName: 'campaigns',
+        functionName: "campaigns",
         args: [campaignId],
       });
       return data;
     } catch (error) {
-      console.error('Error reading campaign details:', error);
+      console.error("Error reading campaign details:", error);
       return null;
     }
   };
@@ -200,12 +183,12 @@ export const useLensAdCampaignMarketplace = () => {
     try {
       const data = await publicClient!.readContract({
         ...lensAdCampaignConfig,
-        functionName: 'sellerCampaigns',
+        functionName: "sellerCampaigns",
         args: [sellerAddress],
       });
       return data;
     } catch (error) {
-      console.error('Error reading seller campaigns:', error);
+      console.error("Error reading seller campaigns:", error);
       return null;
     }
   };
@@ -315,7 +298,10 @@ export const useLensAdCampaignMarketplace = () => {
   };
   
   // Function to get campaign influencer actions
-  const getCampaignInfluencerActions = async (campaignId: number, influencerAddress: `0x${string}`) => {
+  const getCampaignInfluencerActions = async (
+    campaignId: number,
+    influencerAddress: `0x${string}`
+  ) => {
     try {
       // First check if the user has participated in this campaign
       const hasParticipated = await publicClient!.readContract({
@@ -374,46 +360,56 @@ export const useLensAdCampaignMarketplace = () => {
   };
 
   // Function to check if user has performed action
-  const hasPerformedAction = async (campaignId: number, influencerAddress: `0x${string}`, actionType: ActionType) => {
+  const hasPerformedAction = async (
+    campaignId: number,
+    influencerAddress: `0x${string}`,
+    actionType: ActionType
+  ) => {
     try {
       const data = await publicClient!.readContract({
         ...lensAdCampaignConfig,
-        functionName: 'hasPerformedAction',
+        functionName: "hasPerformedAction",
         args: [campaignId, influencerAddress, actionType],
       });
       return data;
     } catch (error) {
-      console.error('Error checking if user has performed action:', error);
+      console.error("Error checking if user has performed action:", error);
       return false;
     }
   };
 
   // Function to check if user has participated
-  const hasParticipated = async (campaignId: number, influencerAddress: `0x${string}`) => {
+  const hasParticipated = async (
+    campaignId: number,
+    influencerAddress: `0x${string}`
+  ) => {
     try {
       const data = await publicClient!.readContract({
         ...lensAdCampaignConfig,
-        functionName: 'hasParticipated',
+        functionName: "hasParticipated",
         args: [campaignId, influencerAddress],
       });
       return data;
     } catch (error) {
-      console.error('Error checking if user has participated:', error);
+      console.error("Error checking if user has participated:", error);
       return false;
     }
   };
 
   // Function to check if user has claimed reward
-  const hasClaimedReward = async (campaignId: number, influencerAddress: `0x${string}`) => {
+  const hasClaimedReward = async (
+    campaignId: number,
+    influencerAddress: `0x${string}`
+  ) => {
     try {
       const data = await publicClient!.readContract({
         ...lensAdCampaignConfig,
-        functionName: 'hasClaimedReward',
+        functionName: "hasClaimedReward",
         args: [campaignId, influencerAddress],
       });
       return data;
     } catch (error) {
-      console.error('Error checking if user has claimed reward:', error);
+      console.error("Error checking if user has claimed reward:", error);
       return false;
     }
   };
@@ -432,7 +428,7 @@ export const useLensAdCampaignMarketplace = () => {
       console.log(`Fetching campaign group ${groupId}`);
       const data = await publicClient!.readContract({
         ...lensAdCampaignConfig,
-        functionName: 'campaignGroups',
+        functionName: "campaignGroups",
         args: [groupId],
       });
       
@@ -452,7 +448,7 @@ export const useLensAdCampaignMarketplace = () => {
         result = {
           groupURI: data[0],
           owner: data[1],
-          postCampaignIds: data[2] || []
+          postCampaignIds: data[2] || [],
         };
       } else {
         result = data;
@@ -463,22 +459,22 @@ export const useLensAdCampaignMarketplace = () => {
       
       return result;
     } catch (error) {
-      console.error('Error reading campaign group:', error);
+      console.error("Error reading campaign group:", error);
       return null;
     }
   };
 
   // Function to get seller campaign groups Owner
-  const getSellerCampaignGroups = async (sellerAddress: `0x${string}`) => {
+  const getSellerCampaignGroups = async () => {
     try {
       const data = await publicClient!.readContract({
         ...lensAdCampaignConfig,
-        functionName: 'getSellerGroups',
+        functionName: "getSellerGroups",
         args: [profile?.address],
       });
       return data;
     } catch (error) {
-      console.error('Error reading seller campaign groups:', error);
+      console.error("Error reading seller campaign groups:", error);
       return [];
     }
   };
@@ -488,7 +484,7 @@ export const useLensAdCampaignMarketplace = () => {
     try {
       const data = await publicClient!.readContract({
         ...lensAdCampaignConfig,
-        functionName: 'getGroupPosts',
+        functionName: "getGroupPosts",
         args: [groupId],
       });
       return data;
@@ -497,16 +493,16 @@ export const useLensAdCampaignMarketplace = () => {
       return [];
     }
   };
-  
+
   // Function to get detailed campaign information
   const getCampaignInfo = async (campaignId: number) => {
     try {
       console.log(`Fetching detailed info for campaign ${campaignId}`);
-      const data = await publicClient!.readContract({
+      const data = (await publicClient!.readContract({
         ...lensAdCampaignConfig,
-        functionName: 'getCampaignInfo',
+        functionName: "getCampaignInfo",
         args: [campaignId],
-      }) as any[];
+      })) as any[];
       console.log(`Raw campaign info data for ID ${campaignId}:`, data);
       
       // Based on the contract's getCampaignInfo function, the response has the following structure:
@@ -541,36 +537,47 @@ export const useLensAdCampaignMarketplace = () => {
         rewardClaimableTime: data[19] as bigint, // Adjusted index based on contract return values
         rewardTimeEnd: data[20] as bigint       // Adjusted index based on contract return values
       };
-      
-      console.log(`Formatted campaign info for ID ${campaignId}:`, formattedData);
+
+      console.log(
+        `Formatted campaign info for ID ${campaignId}:`,
+        formattedData
+      );
       return formattedData;
     } catch (error) {
-      console.error(`Error reading detailed campaign info for ID ${campaignId}:`, error);
+      console.error(
+        `Error reading detailed campaign info for ID ${campaignId}:`,
+        error
+      );
       return null;
     }
   };
 
   // Add Lens Account transaction functionality
-  const { data: lensTransactionHash, isPending: isLensTransactionPending, writeContract: writeLensTransaction } = useWriteContract();
+  const {
+    data: lensTransactionHash,
+    isPending: isLensTransactionPending,
+    writeContract: writeLensTransaction,
+  } = useWriteContract();
 
   const executeLensTransaction = async ({
     targetFunction,
     args,
-    value = 0n
+    value = 0n,
   }: {
     targetFunction: string;
     args: any[];
     value?: bigint;
   }) => {
     try {
-      if (!profile?.address) throw new Error('No Lens account address available');
-      
-      console.log('Starting Lens transaction...', {
+      if (!profile?.address)
+        throw new Error("No Lens account address available");
+
+      console.log("Starting Lens transaction...", {
         targetFunction,
         args,
         value,
         lensAccount: profile.address,
-        targetContract: CONTRACT_ADDRESS
+        targetContract: CONTRACT_ADDRESS,
       });
 
       // Encode the function data for the target contract
@@ -580,76 +587,76 @@ export const useLensAdCampaignMarketplace = () => {
       if (targetFunction === 'createAdCampaign') {
         const createAdCampaignABI = [
           {
-            "inputs": [
+            inputs: [
               {
-                "internalType": "uint256",
-                "name": "_groupId",
-                "type": "uint256"
+                internalType: "uint256",
+                name: "_groupId",
+                type: "uint256",
               },
               {
-                "internalType": "string",
-                "name": "_postId",
-                "type": "string"
+                internalType: "string",
+                name: "_postId",
+                type: "string",
               },
               {
-                "internalType": "enum ActionType",
-                "name": "_actionType",
-                "type": "uint8"
+                internalType: "enum ActionType",
+                name: "_actionType",
+                type: "uint8",
               },
               {
-                "internalType": "uint256",
-                "name": "_availableSlots",
-                "type": "uint256"
+                internalType: "uint256",
+                name: "_availableSlots",
+                type: "uint256",
               },
               {
-                "components": [
+                components: [
                   {
-                    "internalType": "uint256",
-                    "name": "startTime",
-                    "type": "uint256"
+                    internalType: "uint256",
+                    name: "startTime",
+                    type: "uint256",
                   },
                   {
-                    "internalType": "uint256",
-                    "name": "endTime",
-                    "type": "uint256"
-                  }
+                    internalType: "uint256",
+                    name: "endTime",
+                    type: "uint256",
+                  },
                 ],
-                "internalType": "struct AdDisplayTimePeriod",
-                "name": "_adDisplayPeriod",
-                "type": "tuple"
+                internalType: "struct AdDisplayTimePeriod",
+                name: "_adDisplayPeriod",
+                type: "tuple",
               },
               {
-                "internalType": "string",
-                "name": "_groveContentURI",
-                "type": "string"
+                internalType: "string",
+                name: "_groveContentURI",
+                type: "string",
               },
               {
-                "internalType": "string",
-                "name": "_contentHash",
-                "type": "string"
+                internalType: "string",
+                name: "_contentHash",
+                type: "string",
               },
               {
-                "internalType": "uint256",
-                "name": "_rewardClaimableTime",
-                "type": "uint256"
+                internalType: "uint256",
+                name: "_rewardClaimableTime",
+                type: "uint256",
               },
               {
-                "internalType": "uint256",
-                "name": "_minFollowersCount",
-                "type": "uint256"
-              }
+                internalType: "uint256",
+                name: "_minFollowersCount",
+                type: "uint256",
+              },
             ],
-            "name": "createAdCampaign",
-            "outputs": [],
-            "stateMutability": "payable",
-            "type": "function"
-          }
+            name: "createAdCampaign",
+            outputs: [],
+            stateMutability: "payable",
+            type: "function",
+          },
         ];
-        
+
         encodedData = encodeFunctionData({
           abi: createAdCampaignABI,
-          functionName: 'createAdCampaign',
-          args: args
+          functionName: "createAdCampaign",
+          args: args,
         });
         console.log('Using custom ABI for createAdCampaign');
       } else if (targetFunction === 'claimReward') {
@@ -706,12 +713,12 @@ export const useLensAdCampaignMarketplace = () => {
         encodedData = encodeFunctionData({
           abi: LENS_AD_CAMPAIGN_ABI,
           functionName: targetFunction,
-          args: args
+          args: args,
         });
       }
 
-      console.log('Encoded function data:', encodedData);
-      
+      console.log("Encoded function data:", encodedData);
+
       // Use writeLensTransaction to execute the transaction through the Lens smart wallet
       // This matches the approach used in createCampaignGroup
     
@@ -743,85 +750,172 @@ export const useLensAdCampaignMarketplace = () => {
 
       // Return is already handled in the writeLensTransaction call above
     } catch (error: any) {
-      console.error('Detailed error executing Lens transaction:', {
+      console.error("Detailed error executing Lens transaction:", {
         error,
         errorMessage: error.message,
         errorCode: error.code,
-        errorData: error.data
+        errorData: error.data,
       });
       throw error;
     }
   };
 
   // Write functions with transaction receipt tracking
-  const { data: createCampaignHash, isPending: isCreateCampaignPending } = useWriteContract();
+  const { data: createCampaignHash, isPending: isCreateCampaignPending } =
+    useWriteContract();
   const { sendTransaction } = useSendTransaction();
-  const { data: updateStatusHash, isPending: isUpdateStatusPending, writeContract: writeUpdateStatus } = useWriteContract();
-  const { data: updateSlotsHash, isPending: isUpdateSlotsPending, writeContract: writeUpdateSlots } = useWriteContract();
-  const { data: updatePricesHash, isPending: isUpdatePricesPending, writeContract: writeUpdatePrices } = useWriteContract();
-  const { data: extendTimeHash, isPending: isExtendTimePending, writeContract: writeExtendTime } = useWriteContract();
-  const { data: updateContentHash, isPending: isUpdateContentPending, writeContract: writeUpdateContent } = useWriteContract();
-  const { data: createGroupHash, isPending: isCreateGroupPending, writeContract: writeCreateGroup } = useWriteContract();
-  const { data: claimRewardHash, isPending: isClaimRewardPending, writeContract: writeClaimReward } = useWriteContract();
-  const { data: refundDepositsHash, isPending: isRefundDepositsPending, writeContract: writeRefundDeposits } = useWriteContract();
-  const { data: refundDisplayFeeHash, isPending: isRefundDisplayFeePending, writeContract: writeRefundDisplayFee } = useWriteContract();
-  const { data: collectFeesHash, isPending: isCollectFeesPending, writeContract: writeCollectFees } = useWriteContract();
-  const { data: updatePlatformFeeHash, isPending: isUpdatePlatformFeePending, writeContract: writeUpdatePlatformFee } = useWriteContract();
-  const { data: updateFeeCollectorHash, isPending: isUpdateFeeCollectorPending, writeContract: writeUpdateFeeCollector } = useWriteContract();
+  const {
+    data: updateStatusHash,
+    isPending: isUpdateStatusPending,
+    writeContract: writeUpdateStatus,
+  } = useWriteContract();
+  const {
+    data: updateSlotsHash,
+    isPending: isUpdateSlotsPending,
+    writeContract: writeUpdateSlots,
+  } = useWriteContract();
+  const {
+    data: updatePricesHash,
+    isPending: isUpdatePricesPending,
+    writeContract: writeUpdatePrices,
+  } = useWriteContract();
+  const {
+    data: extendTimeHash,
+    isPending: isExtendTimePending,
+    writeContract: writeExtendTime,
+  } = useWriteContract();
+  const {
+    data: updateContentHash,
+    isPending: isUpdateContentPending,
+    writeContract: writeUpdateContent,
+  } = useWriteContract();
+  const {
+    data: createGroupHash,
+    isPending: isCreateGroupPending,
+    writeContract: writeCreateGroup,
+  } = useWriteContract();
+  const {
+    data: claimRewardHash,
+    isPending: isClaimRewardPending,
+    writeContract: writeClaimReward,
+  } = useWriteContract();
+  const {
+    data: refundDepositsHash,
+    isPending: isRefundDepositsPending,
+    writeContract: writeRefundDeposits,
+  } = useWriteContract();
+  const {
+    data: refundDisplayFeeHash,
+    isPending: isRefundDisplayFeePending,
+    writeContract: writeRefundDisplayFee,
+  } = useWriteContract();
+  const {
+    data: collectFeesHash,
+    isPending: isCollectFeesPending,
+    writeContract: writeCollectFees,
+  } = useWriteContract();
+  const {
+    data: updatePlatformFeeHash,
+    isPending: isUpdatePlatformFeePending,
+    writeContract: writeUpdatePlatformFee,
+  } = useWriteContract();
+  const {
+    data: updateFeeCollectorHash,
+    isPending: isUpdateFeeCollectorPending,
+    writeContract: writeUpdateFeeCollector,
+  } = useWriteContract();
 
   // Transaction receipts
-  const { isLoading: isCreateCampaignConfirming, isSuccess: isCreateCampaignConfirmed } = useWaitForTransactionReceipt({
+  const {
+    isLoading: isCreateCampaignConfirming,
+    isSuccess: isCreateCampaignConfirmed,
+  } = useWaitForTransactionReceipt({
     hash: createCampaignHash,
   });
 
-  const { isLoading: isUpdateStatusConfirming, isSuccess: isUpdateStatusConfirmed } = useWaitForTransactionReceipt({
+  const {
+    isLoading: isUpdateStatusConfirming,
+    isSuccess: isUpdateStatusConfirmed,
+  } = useWaitForTransactionReceipt({
     hash: updateStatusHash,
   });
 
-  const { isLoading: isUpdateSlotsConfirming, isSuccess: isUpdateSlotsConfirmed } = useWaitForTransactionReceipt({
+  const {
+    isLoading: isUpdateSlotsConfirming,
+    isSuccess: isUpdateSlotsConfirmed,
+  } = useWaitForTransactionReceipt({
     hash: updateSlotsHash,
   });
 
-  const { isLoading: isUpdatePricesConfirming, isSuccess: isUpdatePricesConfirmed } = useWaitForTransactionReceipt({
+  const {
+    isLoading: isUpdatePricesConfirming,
+    isSuccess: isUpdatePricesConfirmed,
+  } = useWaitForTransactionReceipt({
     hash: updatePricesHash,
   });
 
-  const { isLoading: isExtendTimeConfirming, isSuccess: isExtendTimeConfirmed } = useWaitForTransactionReceipt({
+  const {
+    isLoading: isExtendTimeConfirming,
+    isSuccess: isExtendTimeConfirmed,
+  } = useWaitForTransactionReceipt({
     hash: extendTimeHash,
   });
 
-  const { isLoading: isUpdateContentConfirming, isSuccess: isUpdateContentConfirmed } = useWaitForTransactionReceipt({
+  const {
+    isLoading: isUpdateContentConfirming,
+    isSuccess: isUpdateContentConfirmed,
+  } = useWaitForTransactionReceipt({
     hash: updateContentHash,
   });
 
-  const { isLoading: isCreateGroupConfirming, isSuccess: isCreateGroupConfirmed } = useWaitForTransactionReceipt({
+  const {
+    isLoading: isCreateGroupConfirming,
+    isSuccess: isCreateGroupConfirmed,
+  } = useWaitForTransactionReceipt({
     hash: createGroupHash,
   });
 
-  const { isLoading: isClaimRewardConfirming, isSuccess: isClaimRewardConfirmed } = useWaitForTransactionReceipt({
+  const {
+    isLoading: isClaimRewardConfirming,
+    isSuccess: isClaimRewardConfirmed,
+  } = useWaitForTransactionReceipt({
     hash: claimRewardHash,
   });
 
-  const { isLoading: isRefundDepositsConfirming, isSuccess: isRefundDepositsConfirmed } = useWaitForTransactionReceipt({
+  const {
+    isLoading: isRefundDepositsConfirming,
+    isSuccess: isRefundDepositsConfirmed,
+  } = useWaitForTransactionReceipt({
     hash: refundDepositsHash,
   });
 
-  const { isLoading: isRefundDisplayFeeConfirming, isSuccess: isRefundDisplayFeeConfirmed } = useWaitForTransactionReceipt({
+  const {
+    isLoading: isRefundDisplayFeeConfirming,
+    isSuccess: isRefundDisplayFeeConfirmed,
+  } = useWaitForTransactionReceipt({
     hash: refundDisplayFeeHash,
   });
 
-  const { isLoading: isCollectFeesConfirming, isSuccess: isCollectFeesConfirmed } = useWaitForTransactionReceipt({
+  const {
+    isLoading: isCollectFeesConfirming,
+    isSuccess: isCollectFeesConfirmed,
+  } = useWaitForTransactionReceipt({
     hash: collectFeesHash,
   });
 
-  const { isLoading: isUpdatePlatformFeeConfirming, isSuccess: isUpdatePlatformFeeConfirmed } = useWaitForTransactionReceipt({
+  const {
+    isLoading: isUpdatePlatformFeeConfirming,
+    isSuccess: isUpdatePlatformFeeConfirmed,
+  } = useWaitForTransactionReceipt({
     hash: updatePlatformFeeHash,
   });
 
-  const { isLoading: isUpdateFeeCollectorConfirming, isSuccess: isUpdateFeeCollectorConfirmed } = useWaitForTransactionReceipt({
+  const {
+    isLoading: isUpdateFeeCollectorConfirming,
+    isSuccess: isUpdateFeeCollectorConfirmed,
+  } = useWaitForTransactionReceipt({
     hash: updateFeeCollectorHash,
   });
-
 
   // Create campaign function
   const createCampaign = async (
@@ -849,16 +943,25 @@ export const useLensAdCampaignMarketplace = () => {
     value?: bigint // Add value parameter for sending ETH with the transaction
   ) => {
     try {
-      console.log('CreateCampaign called with:', { 
-        postId, amountPool, rewardAmount, actionType, 
-        minFollowersRequired, availableSlots, 
-        adDisplayStartTime, adDisplayEndTime, 
-        rewardClaimableTime, rewardTimeEnd, 
-        groveContentURI, contentHash, 
-        useSmartWallet, groupId, targetAudience,
-        value
+      console.log("CreateCampaign called with:", {
+        postId,
+        amountPool,
+        rewardAmount,
+        actionType,
+        minFollowersRequired,
+        availableSlots,
+        adDisplayStartTime,
+        adDisplayEndTime,
+        rewardClaimableTime,
+        rewardTimeEnd,
+        groveContentURI,
+        contentHash,
+        useSmartWallet,
+        groupId,
+        targetAudience,
+        value,
       });
-      
+
       // Create the transaction parameters - match the actual contract function parameters
       const args = [
         BigInt(groupId), // Use the provided groupId instead of hardcoding to 0
@@ -867,194 +970,224 @@ export const useLensAdCampaignMarketplace = () => {
         BigInt(availableSlots),
         {
           startTime: BigInt(adDisplayStartTime),
-          endTime: BigInt(adDisplayEndTime)
+          endTime: BigInt(adDisplayEndTime),
         },
         groveContentURI,
         contentHash,
         BigInt(rewardClaimableTime),
-        BigInt(minFollowersRequired)
+        BigInt(minFollowersRequired),
       ];
-      
-      console.log('Executing createAdCampaign with args:', args);
-      console.log('Profile address from auth:', profile?.address);
-      
+
+      console.log("Executing createAdCampaign with args:", args);
+      console.log("Profile address from auth:", profile?.address);
+
       // ALWAYS use the Lens smart wallet if a profile address is available, regardless of useSmartWallet parameter
       if (profile?.address) {
-        console.log('*** ALWAYS USING LENS ACCOUNT FOR createAdCampaign ***');
-        console.log('Using Lens Account for createAdCampaign');
+        console.log("*** ALWAYS USING LENS ACCOUNT FOR createAdCampaign ***");
+        console.log("Using Lens Account for createAdCampaign");
         return executeLensTransaction({
-          targetFunction: 'createAdCampaign',
+          targetFunction: "createAdCampaign",
           args: args,
-          value: value
+          value: value,
         });
       }
-      
-      console.log('Using direct contract call for createAdCampaign');
-      
+
+      console.log("Using direct contract call for createAdCampaign");
+
       // Use sendTransaction for direct contract call
       return sendTransaction({
         to: lensAdCampaignConfig.address,
         data: encodeFunctionData({
           abi: lensAdCampaignConfig.abi,
-          functionName: 'createAdCampaign',
+          functionName: "createAdCampaign",
           args,
         }),
         value,
         gas: 500000n, // Higher gas limit for complex function
       });
     } catch (error: any) {
-      console.error('Detailed createCampaign error:', {
+      console.error("Detailed createCampaign error:", {
         error,
         errorMessage: error.message,
         errorCode: error.code,
-        errorData: error.data
+        errorData: error.data,
       });
       throw error;
     }
   };
 
   // Update campaign status
-  const updateCampaignStatus = async (campaignId: number, status: CampaignStatus, useSmartWallet = false) => {
+  const updateCampaignStatus = async (
+    campaignId: number,
+    status: CampaignStatus,
+    useSmartWallet = false
+  ) => {
     try {
       if (useSmartWallet && profile?.address) {
-        console.log('Using Lens Account for updateCampaignStatus');
+        console.log("Using Lens Account for updateCampaignStatus");
         return executeLensTransaction({
-          targetFunction: 'updateCampaignStatus',
+          targetFunction: "updateCampaignStatus",
           args: [campaignId, status],
         });
       }
 
-      console.log('Using direct contract call for updateCampaignStatus');
+      console.log("Using direct contract call for updateCampaignStatus");
       return writeUpdateStatus({
         ...lensAdCampaignConfig,
-        functionName: 'updateCampaignStatus',
+        functionName: "updateCampaignStatus",
         args: [campaignId, status],
         gas: 300000n,
       });
     } catch (error: any) {
-      console.error('Error updating campaign status:', error);
+      console.error("Error updating campaign status:", error);
       throw error;
     }
   };
 
   // Update campaign slots
-  const updateCampaignSlots = async (campaignId: number, newSlots: number, useSmartWallet = false) => {
+  const updateCampaignSlots = async (
+    campaignId: number,
+    newSlots: number,
+    useSmartWallet = false
+  ) => {
     try {
       if (useSmartWallet && profile?.address) {
-        console.log('Using Lens Account for updateCampaignSlots');
+        console.log("Using Lens Account for updateCampaignSlots");
         return executeLensTransaction({
-          targetFunction: 'updateCampaignSlots',
+          targetFunction: "updateCampaignSlots",
           args: [campaignId, newSlots],
         });
       }
 
-      console.log('Using direct contract call for updateCampaignSlots');
+      console.log("Using direct contract call for updateCampaignSlots");
       return writeUpdateSlots({
         ...lensAdCampaignConfig,
-        functionName: 'updateCampaignSlots',
+        functionName: "updateCampaignSlots",
         args: [campaignId, newSlots],
         gas: 300000n,
       });
     } catch (error: any) {
-      console.error('Error updating campaign slots:', error);
+      console.error("Error updating campaign slots:", error);
       throw error;
     }
   };
 
   // Update campaign prices
-  const updateCampaignPrices = async (campaignId: number, newRewardAmount: bigint, useSmartWallet = false) => {
+  const updateCampaignPrices = async (
+    campaignId: number,
+    newRewardAmount: bigint,
+    useSmartWallet = false
+  ) => {
     try {
       if (useSmartWallet && profile?.address) {
-        console.log('Using Lens Account for updateCampaignPrices');
+        console.log("Using Lens Account for updateCampaignPrices");
         return executeLensTransaction({
-          targetFunction: 'updateCampaignPrices',
+          targetFunction: "updateCampaignPrices",
           args: [campaignId, newRewardAmount],
         });
       }
 
-      console.log('Using direct contract call for updateCampaignPrices');
+      console.log("Using direct contract call for updateCampaignPrices");
       return writeUpdatePrices({
         ...lensAdCampaignConfig,
-        functionName: 'updateCampaignPrices',
+        functionName: "updateCampaignPrices",
         args: [campaignId, newRewardAmount],
         gas: 300000n,
       });
     } catch (error: any) {
-      console.error('Error updating campaign prices:', error);
+      console.error("Error updating campaign prices:", error);
       throw error;
     }
   };
 
   // Extend campaign time
-  const extendCampaignTime = async (campaignId: number, newEndTime: number, useSmartWallet = false) => {
+  const extendCampaignTime = async (
+    campaignId: number,
+    newEndTime: number,
+    useSmartWallet = false
+  ) => {
     try {
       if (useSmartWallet && profile?.address) {
-        console.log('Using Lens Account for extendCampaignTime');
+        console.log("Using Lens Account for extendCampaignTime");
         return executeLensTransaction({
-          targetFunction: 'extendCampaignTime',
+          targetFunction: "extendCampaignTime",
           args: [campaignId, newEndTime],
         });
       }
 
-      console.log('Using direct contract call for extendCampaignTime');
+      console.log("Using direct contract call for extendCampaignTime");
       return writeExtendTime({
         ...lensAdCampaignConfig,
-        functionName: 'extendCampaignTime',
+        functionName: "extendCampaignTime",
         args: [campaignId, newEndTime],
         gas: 300000n,
       });
     } catch (error: any) {
-      console.error('Error extending campaign time:', error);
+      console.error("Error extending campaign time:", error);
       throw error;
     }
   };
 
   // Update campaign content
-  const updateCampaignContent = async (campaignId: number, groveContentURI: string, contentHash: string, useSmartWallet = false) => {
+  const updateCampaignContent = async (
+    campaignId: number,
+    groveContentURI: string,
+    contentHash: string,
+    useSmartWallet = false
+  ) => {
     try {
       if (useSmartWallet && profile?.address) {
-        console.log('Using Lens Account for updateCampaignContent');
+        console.log("Using Lens Account for updateCampaignContent");
         return executeLensTransaction({
-          targetFunction: 'updateCampaignContent',
+          targetFunction: "updateCampaignContent",
           args: [campaignId, groveContentURI, contentHash],
         });
       }
 
-      console.log('Using direct contract call for updateCampaignContent');
+      console.log("Using direct contract call for updateCampaignContent");
       return writeUpdateContent({
         ...lensAdCampaignConfig,
-        functionName: 'updateCampaignContent',
+        functionName: "updateCampaignContent",
         args: [campaignId, groveContentURI, contentHash],
         gas: 300000n,
       });
     } catch (error: any) {
-      console.error('Error updating campaign content:', error);
+      console.error("Error updating campaign content:", error);
       throw error;
     }
   };
 
   // Create campaign group
-  const createCampaignGroup = async (groupURI: string, useSmartWallet = true) => {
+  const createCampaignGroup = async (
+    groupURI: string,
+    useSmartWallet = true
+  ) => {
     try {
-      console.log('Executing createCampaignGroup with URI:', groupURI, useSmartWallet, profile?.address, address);
-      
+      console.log(
+        "Executing createCampaignGroup with URI:",
+        groupURI,
+        useSmartWallet,
+        profile?.address,
+        address
+      );
+
       if (useSmartWallet && profile?.address) {
-        console.log('Using Lens Account for createCampaignGroup');
+        console.log("Using Lens Account for createCampaignGroup");
         return executeLensTransaction({
-          targetFunction: 'createCampaignGroup',
+          targetFunction: "createCampaignGroup",
           args: [groupURI],
         });
       }
-      
-      console.log('Using direct contract call for createCampaignGroup');
+
+      console.log("Using direct contract call for createCampaignGroup");
       return writeCreateGroup({
         ...lensAdCampaignConfig,
-        functionName: 'createCampaignGroup',
+        functionName: "createCampaignGroup",
         args: [groupURI],
         gas: 300000n,
       });
     } catch (error: any) {
-      console.error('Error creating campaign group:', error);
+      console.error("Error creating campaign group:", error);
       throw error;
     }
   };
@@ -1155,7 +1288,7 @@ export const useLensAdCampaignMarketplace = () => {
         gasPrice: 5000000000n, // 5 gwei
       });
     } catch (error: any) {
-      console.error('Error claiming reward:', error);
+      console.error("Error claiming reward:", error);
       throw error;
     }
   };
@@ -1164,46 +1297,49 @@ export const useLensAdCampaignMarketplace = () => {
   const refundDeposits = async (campaignId: number, useSmartWallet = false) => {
     try {
       if (useSmartWallet && profile?.address) {
-        console.log('Using Lens Account for refundDeposits');
+        console.log("Using Lens Account for refundDeposits");
         return executeLensTransaction({
-          targetFunction: 'refundDeposits',
+          targetFunction: "refundDeposits",
           args: [campaignId],
         });
       }
 
-      console.log('Using direct contract call for refundDeposits');
+      console.log("Using direct contract call for refundDeposits");
       return writeRefundDeposits({
         ...lensAdCampaignConfig,
-        functionName: 'refundDeposits',
+        functionName: "refundDeposits",
         args: [campaignId],
         gas: 300000n,
       });
     } catch (error: any) {
-      console.error('Error refunding deposits:', error);
+      console.error("Error refunding deposits:", error);
       throw error;
     }
   };
 
   // Refund display fee
-  const refundDisplayFee = async (campaignId: number, useSmartWallet = false) => {
+  const refundDisplayFee = async (
+    campaignId: number,
+    useSmartWallet = false
+  ) => {
     try {
       if (useSmartWallet && profile?.address) {
-        console.log('Using Lens Account for refundDisplayFee');
+        console.log("Using Lens Account for refundDisplayFee");
         return executeLensTransaction({
-          targetFunction: 'refundDisplayFee',
+          targetFunction: "refundDisplayFee",
           args: [campaignId],
         });
       }
 
-      console.log('Using direct contract call for refundDisplayFee');
+      console.log("Using direct contract call for refundDisplayFee");
       return writeRefundDisplayFee({
         ...lensAdCampaignConfig,
-        functionName: 'refundDisplayFee',
+        functionName: "refundDisplayFee",
         args: [campaignId],
         gas: 300000n,
       });
     } catch (error: any) {
-      console.error('Error refunding display fee:', error);
+      console.error("Error refunding display fee:", error);
       throw error;
     }
   };
@@ -1212,107 +1348,122 @@ export const useLensAdCampaignMarketplace = () => {
   const collectFees = async (useSmartWallet = false) => {
     try {
       if (useSmartWallet && profile?.address) {
-        console.log('Using Lens Account for collectFees');
+        console.log("Using Lens Account for collectFees");
         return executeLensTransaction({
-          targetFunction: 'collectFees',
+          targetFunction: "collectFees",
           args: [],
         });
       }
 
-      console.log('Using direct contract call for collectFees');
+      console.log("Using direct contract call for collectFees");
       return writeCollectFees({
         ...lensAdCampaignConfig,
-        functionName: 'collectFees',
+        functionName: "collectFees",
         args: [],
         gas: 300000n,
       });
     } catch (error: any) {
-      console.error('Error collecting fees:', error);
+      console.error("Error collecting fees:", error);
       throw error;
     }
   };
 
   // Update platform fee
-  const updatePlatformFee = async (newFeePercentage: number, useSmartWallet = false) => {
+  const updatePlatformFee = async (
+    newFeePercentage: number,
+    useSmartWallet = false
+  ) => {
     try {
       if (useSmartWallet && profile?.address) {
-        console.log('Using Lens Account for updatePlatformFee');
+        console.log("Using Lens Account for updatePlatformFee");
         return executeLensTransaction({
-          targetFunction: 'updatePlatformFee',
+          targetFunction: "updatePlatformFee",
           args: [newFeePercentage],
         });
       }
 
-      console.log('Using direct contract call for updatePlatformFee');
+      console.log("Using direct contract call for updatePlatformFee");
       return writeUpdatePlatformFee({
         ...lensAdCampaignConfig,
-        functionName: 'updatePlatformFee',
+        functionName: "updatePlatformFee",
         args: [newFeePercentage],
         gas: 300000n,
       });
     } catch (error: any) {
-      console.error('Error updating platform fee:', error);
+      console.error("Error updating platform fee:", error);
       throw error;
     }
   };
 
   // Update fee collector
-  const updateFeeCollector = async (newFeeCollector: `0x${string}`, useSmartWallet = false) => {
+  const updateFeeCollector = async (
+    newFeeCollector: `0x${string}`,
+    useSmartWallet = false
+  ) => {
     try {
       if (useSmartWallet && profile?.address) {
-        console.log('Using Lens Account for updateFeeCollector');
+        console.log("Using Lens Account for updateFeeCollector");
         return executeLensTransaction({
-          targetFunction: 'updateFeeCollector',
+          targetFunction: "updateFeeCollector",
           args: [newFeeCollector],
         });
       }
 
-      console.log('Using direct contract call for updateFeeCollector');
+      console.log("Using direct contract call for updateFeeCollector");
       return writeUpdateFeeCollector({
         ...lensAdCampaignConfig,
-        functionName: 'updateFeeCollector',
+        functionName: "updateFeeCollector",
         args: [newFeeCollector],
         gas: 300000n,
       });
     } catch (error: any) {
-      console.error('Error updating fee collector:', error);
+      console.error("Error updating fee collector:", error);
       throw error;
     }
   };
 
   // Add new function for claiming balance through Lens
   const claimBalanceLens = async () => {
-    if (!profile?.address) throw new Error('No Lens address');
-    if (!address) throw new Error('No wallet address');
-    
+    if (!profile?.address) throw new Error("No Lens address");
+    if (!address) throw new Error("No wallet address");
+
     return writeLensTransaction({
       address: profile.address as `0x${string}`,
       abi: accountABI,
-      functionName: 'executeTransaction',
-      args: [
-        address as `0x${string}`,
-        balance?.value as bigint,
-        '0x'
-      ],
+      functionName: "executeTransaction",
+      args: [address as `0x${string}`, balance?.value as bigint, "0x"],
       gas: 300000n,
     });
   };
 
   // Helper to check if a transaction is in progress
-  const isLoading = 
-    isCreateCampaignPending || isCreateCampaignConfirming ||
-    isUpdateStatusPending || isUpdateStatusConfirming ||
-    isUpdateSlotsPending || isUpdateSlotsConfirming ||
-    isUpdatePricesPending || isUpdatePricesConfirming ||
-    isExtendTimePending || isExtendTimeConfirming ||
-    isUpdateContentPending || isUpdateContentConfirming ||
-    isCreateGroupPending || isCreateGroupConfirming ||
-    isClaimRewardPending || isClaimRewardConfirming ||
-    isRefundDepositsPending || isRefundDepositsConfirming ||
-    isRefundDisplayFeePending || isRefundDisplayFeeConfirming ||
-    isCollectFeesPending || isCollectFeesConfirming ||
-    isUpdatePlatformFeePending || isUpdatePlatformFeeConfirming ||
-    isUpdateFeeCollectorPending || isUpdateFeeCollectorConfirming ||
+  const isLoading =
+    isCreateCampaignPending ||
+    isCreateCampaignConfirming ||
+    isUpdateStatusPending ||
+    isUpdateStatusConfirming ||
+    isUpdateSlotsPending ||
+    isUpdateSlotsConfirming ||
+    isUpdatePricesPending ||
+    isUpdatePricesConfirming ||
+    isExtendTimePending ||
+    isExtendTimeConfirming ||
+    isUpdateContentPending ||
+    isUpdateContentConfirming ||
+    isCreateGroupPending ||
+    isCreateGroupConfirming ||
+    isClaimRewardPending ||
+    isClaimRewardConfirming ||
+    isRefundDepositsPending ||
+    isRefundDepositsConfirming ||
+    isRefundDisplayFeePending ||
+    isRefundDisplayFeeConfirming ||
+    isCollectFeesPending ||
+    isCollectFeesConfirming ||
+    isUpdatePlatformFeePending ||
+    isUpdatePlatformFeeConfirming ||
+    isUpdateFeeCollectorPending ||
+    isUpdateFeeCollectorConfirming ||
     isLensTransactionPending;
 
   // Constants for Lens Protocol action parameters - MUST match the contract exactly

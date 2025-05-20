@@ -1,9 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
-import {
-  useLensAdCampaignMarketplace,
-  ActionType,
-} from "@/hooks/useLensAdCampaignMarketplace";
+import { useLensAdCampaignMarketplace } from "@/hooks/useLensAdCampaignMarketplace";
 import { useNavigate } from "react-router-dom";
 import {
   FiExternalLink,
@@ -12,7 +9,6 @@ import {
   FiHash,
   FiMessageSquare,
   FiRepeat,
-  FiArrowLeft,
 } from "react-icons/fi";
 import { storageClient, fetchLensProfileByAddress } from "@/lib/lens";
 import { UseAuth } from "@/context/auth/AuthContext";
@@ -20,58 +16,10 @@ import { FaPlus } from "react-icons/fa";
 import { post, repost } from "@lens-protocol/client/actions";
 import { postId, uri } from "@lens-protocol/client";
 import { textOnly } from "@lens-protocol/metadata";
+import { ActionType } from "@/constants/Campaign";
+import Page from "@/components/molecules/Page";
+import { formatTimeAgo, getActionTypeName } from "@/lib/helper";
 
-// Helper function to get action type name
-const getActionTypeName = (actionType: number): string => {
-  switch (actionType) {
-    case ActionType.NONE:
-      return "None";
-    case ActionType.MIRROR:
-      return "Mirror";
-    case ActionType.COMMENT:
-      return "Comment";
-    case ActionType.QUOTE:
-      return "Quote";
-    default:
-      return "Unknown";
-  }
-};
-
-// Helper function to format time ago
-const formatTimeAgo = (dateString: string): string => {
-  const date = new Date(dateString);
-  const now = new Date();
-  const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
-
-  if (diffInSeconds < 60) {
-    return `${diffInSeconds} seconds ago`;
-  }
-
-  const diffInMinutes = Math.floor(diffInSeconds / 60);
-  if (diffInMinutes < 60) {
-    return `${diffInMinutes} ${diffInMinutes === 1 ? "minute" : "minutes"} ago`;
-  }
-
-  const diffInHours = Math.floor(diffInMinutes / 60);
-  if (diffInHours < 24) {
-    return `${diffInHours} ${diffInHours === 1 ? "hour" : "hours"} ago`;
-  }
-
-  const diffInDays = Math.floor(diffInHours / 24);
-  if (diffInDays < 30) {
-    return `${diffInDays} ${diffInDays === 1 ? "day" : "days"} ago`;
-  }
-
-  const diffInMonths = Math.floor(diffInDays / 30);
-  if (diffInMonths < 12) {
-    return `${diffInMonths} ${diffInMonths === 1 ? "month" : "months"} ago`;
-  }
-
-  const diffInYears = Math.floor(diffInMonths / 12);
-  return `${diffInYears} ${diffInYears === 1 ? "year" : "years"} ago`;
-};
-
-// Define the campaign group data structure
 interface CampaignGroupData {
   groupURI: string;
   owner: string;
@@ -79,7 +27,6 @@ interface CampaignGroupData {
   metadata?: any;
 }
 
-// Define the campaign data structure
 interface CampaignData {
   id: number;
   campaignId: number;
@@ -105,7 +52,6 @@ interface CampaignData {
   metadata?: any;
 }
 
-// --- OwnerProfile subcomponent ---
 interface OwnerProfileProps {
   address: string;
 }
@@ -114,7 +60,7 @@ const OwnerProfile: React.FC<OwnerProfileProps> = ({ address }) => {
   const [profile, setProfile] = React.useState<any | null>(null);
   const [loading, setLoading] = React.useState(false);
 
-  React.useEffect(() => {
+  useEffect(() => {
     let isMounted = true;
     if (!address) return;
     setLoading(true);
@@ -129,13 +75,6 @@ const OwnerProfile: React.FC<OwnerProfileProps> = ({ address }) => {
     };
   }, [address]);
 
-  if (loading) {
-    return (
-      <p className="text-gray-400 text-sm mb-2 truncate animate-pulse">
-        Loading...
-      </p>
-    );
-  }
   if (profile) {
     return (
       <div className="flex items-center gap-2 text-gray-400 text-sm mb-2 truncate">
@@ -394,12 +333,10 @@ const CampaignGroupDetail: React.FC = () => {
   useEffect(() => {
     const fetchCampaignGroup = async () => {
       if (!id) {
-        setError("Campaign group ID is required");
         setIsLoading(false);
         return;
       }
 
-      // Prevent duplicate fetches
       if (!isLoading) {
         return;
       }
@@ -601,20 +538,18 @@ const CampaignGroupDetail: React.FC = () => {
     };
 
     fetchCampaignGroup();
-  }, [id, getCampaignGroup, CONTRACT_ADDRESS]);
+  }, [
+    id,
+    getCampaignGroup,
+    getGroupPosts,
+    getCampaignInfo,
+    isLoading,
+    CONTRACT_ADDRESS,
+  ]);
 
   return (
-    <div className="mx-auto">
+    <Page pageHeading="Campagin Group Details" title="Campaign Group Details">
       {/* Sticky Header */}
-      <div className="sticky top-0 z-10 bg-gray-900">
-        <div className="flex justify-between items-center">
-          <h1 className="p-4 text-2xl font-bold text-white">
-            Campaign Group Details
-          </h1>
-        </div>
-        <div className="border-t border-gray-700 mb-2"></div>
-      </div>
-
       {/* Loading state */}
       {isLoading && (
         <div className="flex justify-center items-center py-12">
@@ -633,17 +568,6 @@ const CampaignGroupDetail: React.FC = () => {
       {/* Campaign group details */}
       {!isLoading && !error && campaignGroup && (
         <div>
-          <div className="p-2">
-            <button
-              onClick={() => {
-                navigate(`/campaign`);
-              }}
-              className="mb-2 w-10 h-10 flex items-center justify-center rounded-full cursor-pointer bg-gray-600 hover:bg-gray-700 transition-colors"
-              aria-label="Back"
-            >
-              <FiArrowLeft size={28} className="text-gray-300" />
-            </button>
-          </div>
           <div className="p-2 bg-gray-800 rounded-lg overflow-hidden border border-gray-700">
             {/* Cover photo */}
             <div className="h-48 bg-gray-700 relative">
@@ -982,7 +906,7 @@ const CampaignGroupDetail: React.FC = () => {
           </div>
         </div>
       )}
-    </div>
+    </Page>
   );
 };
 
